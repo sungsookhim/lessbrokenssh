@@ -16,7 +16,7 @@ IF(CMAKE_SYSTEM_NAME MATCHES Retro68)
 ELSE()
   set(SSHEVEN_CPU 601 CACHE STRING "target CPU")
 ENDIF()
-add_application(ssheven CREATOR "SSH7" ssheven.c ssheven-console.c ssheven.r glyphs.r cjk.r ssheven-net.c ssheven-debug.c ssheven-glyph.c ssheven-cjk.c)
+add_application(ssheven CREATOR "SSH7" ssheven.c ssheven-console.c ssheven.r glyphs.r cjk.r ssheven-net.c ssheven-debug.c ssheven-glyph.c ssheven-cjk.c ssheven-scrollback.c)
 
 # set up and build mbedtls
 set(ENABLE_PROGRAMS OFF CACHE BOOL "disable mbedtls programs" FORCE)

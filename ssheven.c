@@ -550,8 +550,8 @@ void resize_con_window(WindowPtr eventWin, EventRecord event)
 	// right = max horizontal
 	Rect window_limits = { .top = con.cell_height*2 + 2,
 		.bottom = con.cell_height*100 + 2,
-		.left = con.cell_width*10 + 4,
-		.right = con.cell_width*200 + 4 };
+		.left = con.cell_width*10 + 4 + SCROLL_BAR_WIDTH,
+		.right = con.cell_width*200 + 4 + SCROLL_BAR_WIDTH };
 
 	long growResult = GrowWindow(eventWin, event.where, &window_limits);
 
@@ -562,13 +562,14 @@ void resize_con_window(WindowPtr eventWin, EventRecord event)
 
 		// 'snap' to a size that won't have extra pixels not in a cell
 		short next_height = height - ((height - 4) % con.cell_height);
-		short next_width = width - ((width - 4) % con.cell_width);
+		short next_width = width - ((width - 4 - SCROLL_BAR_WIDTH) % con.cell_width);
 
 		SizeWindow(eventWin, next_width, next_height, true);
+		position_scroll_bar();
 		EraseRect(&(con.win->portRect));
 		InvalRect(&(con.win->portRect));
 
-		con.size_x = (next_width - 4)/con.cell_width;
+		con.size_x = (next_width - 4 - SCROLL_BAR_WIDTH)/con.cell_width;
 		con.size_y = (next_height - 2)/con.cell_height;
 
 		vterm_set_size(con.vterm, con.size_y, con.size_x);
@@ -607,8 +608,16 @@ int handle_keypress(EventRecord* event)
 				break;
 		}
 	}
+	else if (c && (event->modifiers & shiftKey) && (c == kPageUpCharCode || c == kPageDownCharCode))
+	{
+		// shift-page up/down scroll back through history, like most terminals
+		console_scroll((c == kPageUpCharCode) ? console_page_lines() : -console_page_lines());
+	}
 	else if (c)
 	{
+		// typing goes to the live screen
+		console_scroll_to_bottom();
+
 		// get the unmodified version of the keypress
 		uint8_t unmodified_key = keycode_to_ascii[(event->message & keyCodeMask)>>8];
 
@@ -686,6 +695,7 @@ void event_loop(void)
 				eventWin = (WindowPtr)event.message;
 				BeginUpdate(eventWin);
 				draw_screen(&(eventWin->portRect));
+				DrawControls(eventWin);
 				EndUpdate(eventWin);
 				break;
 
@@ -726,7 +736,8 @@ void event_loop(void)
 
 					case inContent:
 						GetMouse(&local_mouse_position);
-						mouse_click(local_mouse_position, true);
+						if (!scroll_bar_click(local_mouse_position))
+							mouse_click(local_mouse_position, true);
 						break;
 				}
 				break;

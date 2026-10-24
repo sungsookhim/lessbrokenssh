@@ -29,3 +29,12 @@ void clear_selection(void);
 void font_size_change(void);
 
 void print_display_info(void);
+
+// width of the scrollback scroll bar on the right of the window
+#define SCROLL_BAR_WIDTH 15
+
+void position_scroll_bar(void);
+int scroll_bar_click(Point p);
+void console_scroll(int lines);
+void console_scroll_to_bottom(void);
+int console_page_lines(void);

@@ -12,10 +12,13 @@
 #include "ssheven-glyph.h"
 #include "ssheven-macroman.h"
 #include "ssheven-cjk.h"
+#include "ssheven-scrollback.h"
 
 #include <string.h>
 
 #include <Sound.h>
+#include <Controls.h>
+#include <ControlDefinitions.h>
 #include <Gestalt.h>
 #include <Script.h>
 
@@ -28,6 +31,27 @@
 char key_to_vterm[256] = { VTERM_KEY_NONE };
 
 int font_offset = 0;
+
+// scrollback view: how many lines up from the live screen we're looking (0 is live)
+static int view_offset = 0;
+static ControlHandle scroll_bar = NULL;
+static int scroll_bar_dirty = 0;
+
+// a cell as currently shown: from scrollback when scrolled up, else the screen
+static int view_cell(VTermPos pos, VTermScreenCell* cell)
+{
+	if (view_offset == 0) return vterm_screen_get_cell(con.vts, pos, cell);
+
+	int line = pos.row - view_offset;
+	if (line >= 0)
+	{
+		VTermPos live = { .row = line, .col = pos.col };
+		return vterm_screen_get_cell(con.vts, live, cell);
+	}
+
+	scrollback_cell(scrollback_count() + line, pos.col, cell);
+	return 1;
+}
 
 // Color QuickDraw is there (true on practically every 68020+ Mac); the console
 // window is a color window then, which emoji and real colors need
@@ -194,28 +218,12 @@ static inline int cell_glyph(const VTermScreenCell* cell)
 	return glyph_index(c);
 }
 
-// decomposed Hangul (NFD, common in file names made on macOS) arrives as a
-// leading consonant with the vowel and final consonant as combining characters
-// in the same cell; put them back together into the syllable, Unicode's way
-static uint32_t compose_hangul(const VTermScreenCell* cell)
-{
-	uint32_t l = cell->chars[0];
-	uint32_t v = cell->chars[1];
-
-	if (l < 0x1100 || l > 0x1112 || v < 0x1161 || v > 0x1175) return l;
-
-	uint32_t t = cell->chars[2];
-	uint32_t t_index = (t >= 0x11A8 && t <= 0x11C2) ? t - 0x11A7 : 0;
-
-	return 0xAC00 + ((l - 0x1100) * 21 + (v - 0x1161)) * 28 + t_index;
-}
-
 // a two-cell character to draw with a CJK script font, or -1
 static inline int32_t cell_cjk(const VTermScreenCell* cell)
 {
 	if (cell->width != 2) return -1;
 
-	return cjk_lookup(compose_hangul(cell));
+	return cjk_lookup(compose_hangul(cell->chars));
 }
 
 // draw the atlas glyphs and CJK characters in one run of a row, in the current colors
@@ -467,7 +475,7 @@ void select_word(void)
 	{
 		prev(&pos.col, &pos.row);
 
-		int ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
+		int ok = view_cell(pos, &vtsc);
 
 		// TODO FIXME not really unicode safe
 		c = cell_text(&vtsc);
@@ -489,7 +497,7 @@ void select_word(void)
 	{
 		next(&pos.col, &pos.row);
 
-		int ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
+		int ok = view_cell(pos, &vtsc);
 
 		// TODO FIXME not really unicode safe
 		c = cell_text(&vtsc);
@@ -583,7 +591,7 @@ size_t get_selection(char** selection)
 	{
 		next(&pos.col, &pos.row);
 
-		int ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
+		int ok = view_cell(pos, &vtsc);
 
 		// TODO FIXME not really unicode safe
 		output[i] = cell_text(&vtsc);
@@ -677,7 +685,7 @@ void draw_screen_color(Rect* r)
 	for (pos.row = 0; pos.row < con.size_y; pos.row++)
 	{
 		pos.col = 0;
-		ok = vterm_screen_get_cell(con.vts, pos, &run_start);
+		ok = view_cell(pos, &run_start);
 		run_length = 0;
 		run_start_col = 0;
 
@@ -694,7 +702,7 @@ void draw_screen_color(Rect* r)
 
 		for (pos.col = 0; pos.col < con.size_x; pos.col++)
 		{
-			ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
+			ok = view_cell(pos, &vtsc);
 
 			row_emoji[pos.col] = cell_emoji(&vtsc);
 			row_glyph[pos.col] = (row_emoji[pos.col] >= 0) ? -1 : cell_glyph(&vtsc);
@@ -760,7 +768,7 @@ void draw_screen_color(Rect* r)
 	}
 
 	// do the cursor if needed
-	if (con.cursor_state && con.cursor_visible)
+	if (con.cursor_state && con.cursor_visible && view_offset == 0)
 	{
 		Rect cursor = cell_rect(con.cursor_x, con.cursor_y, con.win->portRect);
 		InvertRect(&cursor);
@@ -845,7 +853,7 @@ void draw_screen_fast(Rect* r)
 
 		for (pos.col = 0; pos.col < con.size_x; pos.col++)
 		{
-			int ret = vterm_screen_get_cell(con.vts, pos, &here);
+			int ret = view_cell(pos, &here);
 
 			row_emoji[pos.col] = cell_emoji(&here);
 			row_glyph[pos.col] = (row_emoji[pos.col] >= 0) ? -1 : cell_glyph(&here);
@@ -875,7 +883,7 @@ void draw_screen_fast(Rect* r)
 	}
 
 	// do the cursor if needed
-	if (con.cursor_state && con.cursor_visible)
+	if (con.cursor_state && con.cursor_visible && view_offset == 0)
 	{
 		Rect cursor = cell_rect(con.cursor_x, con.cursor_y, con.win->portRect);
 		InvertRect(&cursor);
@@ -891,6 +899,13 @@ void draw_screen_fast(Rect* r)
 
 void draw_screen(Rect* r)
 {
+	if (scroll_bar && scroll_bar_dirty)
+	{
+		scroll_bar_dirty = 0;
+		SetControlMaximum(scroll_bar, (short)scrollback_count());
+		SetControlValue(scroll_bar, (short)(scrollback_count() - view_offset));
+	}
+
 	if (prefs.display_mode == FASTEST)
 	{
 		draw_screen_fast(r);
@@ -1032,6 +1047,12 @@ int movecursor(VTermPos pos, VTermPos oldpos, int visible, void *user)
 
 int damage(VTermRect rect, void *user)
 {
+	if (view_offset > 0)
+	{
+		InvalRect(&con.win->portRect);
+		return 1;
+	}
+
 	Rect topleft = cell_rect(rect.start_col, rect.start_row, (con.win->portRect));
 	Rect bottomright = cell_rect(rect.end_col, rect.end_row, (con.win->portRect));
 
@@ -1074,6 +1095,34 @@ void output_callback(const char *s, size_t len, void *user)
 	ssh_write((char*)s, len);
 }
 
+int sb_pushline(int cols, const VTermScreenCell* cells, void* user)
+{
+	scrollback_push(cols, cells);
+
+	// keep showing the same lines while scrolled back
+	if (view_offset > 0 && view_offset < scrollback_count()) view_offset++;
+	scroll_bar_dirty = 1;
+
+	return 1;
+}
+
+int sb_popline(int cols, VTermScreenCell* cells, void* user)
+{
+	if (view_offset > 0) view_offset--;
+	scroll_bar_dirty = 1;
+
+	return scrollback_pop(cols, cells);
+}
+
+int sb_clear(void* user)
+{
+	scrollback_clear();
+	view_offset = 0;
+	scroll_bar_dirty = 1;
+
+	return 1;
+}
+
 const VTermScreenCallbacks vtscrcb =
 {
 	.damage = damage,
@@ -1082,9 +1131,88 @@ const VTermScreenCallbacks vtscrcb =
 	.settermprop = settermprop,
 	.bell = bell,
 	.resize = NULL,
-	.sb_pushline = NULL,
-	.sb_popline = NULL
+	.sb_pushline = sb_pushline,
+	.sb_popline = sb_popline,
+	.sb_clear = sb_clear
 };
+
+// the scroll bar runs down the right edge, stopping short of the grow box
+void position_scroll_bar(void)
+{
+	if (scroll_bar == NULL) return;
+
+	Rect port = con.win->portRect;
+	HideControl(scroll_bar);
+	MoveControl(scroll_bar, (short)(port.right - SCROLL_BAR_WIDTH), (short)(port.top - 1));
+	SizeControl(scroll_bar, SCROLL_BAR_WIDTH + 1, (short)(port.bottom - port.top - SCROLL_BAR_WIDTH + 2));
+	ShowControl(scroll_bar);
+}
+
+// look `lines` further back (positive) or forward (negative) in the scrollback
+void console_scroll(int lines)
+{
+	int next = view_offset + lines;
+	if (next < 0) next = 0;
+	if (next > scrollback_count()) next = scrollback_count();
+	if (next == view_offset) return;
+
+	// a selection would point at different text now
+	clear_selection();
+
+	view_offset = next;
+	scroll_bar_dirty = 1;
+	draw_screen(&con.win->portRect);
+}
+
+// back to the live screen, e.g. when the user types
+void console_scroll_to_bottom(void)
+{
+	if (view_offset != 0) console_scroll(-view_offset);
+}
+
+// a page is the window less one line, so a line of context stays on screen
+int console_page_lines(void)
+{
+	return (con.size_y > 1) ? con.size_y - 1 : 1;
+}
+
+static pascal void scroll_action(ControlHandle control, short part)
+{
+	switch (part)
+	{
+		case kControlUpButtonPart: console_scroll(1); break;
+		case kControlDownButtonPart: console_scroll(-1); break;
+		case kControlPageUpPart: console_scroll(console_page_lines()); break;
+		case kControlPageDownPart: console_scroll(-console_page_lines()); break;
+		default: break;
+	}
+}
+
+// handle a click in the scroll bar; returns 0 if the click wasn't on it
+int scroll_bar_click(Point p)
+{
+	static ControlActionUPP action = NULL;
+	if (action == NULL) action = NewControlActionUPP(scroll_action);
+
+	ControlHandle control = NULL;
+	short part = FindControl(p, con.win, &control);
+	if (control == NULL || control != scroll_bar || part == 0) return 0;
+
+	if (part == kControlIndicatorPart)
+	{
+		// dragged the thumb: the value counts up from the oldest line
+		if (TrackControl(control, p, NULL))
+		{
+			console_scroll((scrollback_count() - GetControlValue(control)) - view_offset);
+		}
+	}
+	else
+	{
+		TrackControl(control, p, action);
+	}
+
+	return 1;
+}
 
 void font_size_change()
 {
@@ -1122,7 +1250,8 @@ void font_size_change()
 	TextSize(save_font_size);
 	TextFace(save_font_face);
 
-	SizeWindow(con.win, (short)(con.cell_width * con.size_x + 4), (short)(con.cell_height * con.size_y + 4), true);
+	SizeWindow(con.win, (short)(con.cell_width * con.size_x + 4 + SCROLL_BAR_WIDTH), (short)(con.cell_height * con.size_y + 4), true);
+	position_scroll_bar();
 	EraseRect(&(con.win->portRect));
 	InvalRect(&(con.win->portRect));
 
@@ -1158,6 +1287,7 @@ void reset_console(void)
 	vterm_output_set_callback(con.vterm, output_callback, NULL);
 
 	con.vts = vterm_obtain_screen(con.vterm);
+	vterm_screen_enable_altscreen(con.vts, 1);
 	vterm_screen_reset(con.vts, 1);
 	vterm_screen_set_callbacks(con.vts, &vtscrcb, NULL);
 }
@@ -1206,7 +1336,7 @@ void console_setup(void)
 	initial_window_bounds.top += 40;
 
 	initial_window_bounds.bottom = (short)(initial_window_bounds.top + con.cell_height * con.size_y + 4);
-	initial_window_bounds.right = (short)(initial_window_bounds.left + con.cell_width * con.size_x + 4);
+	initial_window_bounds.right = (short)(initial_window_bounds.left + con.cell_width * con.size_x + 4 + SCROLL_BAR_WIDTH);
 
 	ConstStr255Param title = "\pssheven " SSHEVEN_VERSION;
 
@@ -1222,6 +1352,12 @@ void console_setup(void)
 	EraseRect(&portRect);
 
 	con.win = win;
+
+	{
+		Rect bar = { 0, 0, 10, SCROLL_BAR_WIDTH };
+		scroll_bar = NewControl(win, &bar, "\p", true, 0, 0, 0, scrollBarProc, 0);
+		position_scroll_bar();
+	}
 
 	con.cursor_x = 0;
 	con.cursor_y = 0;
@@ -1242,6 +1378,7 @@ void console_setup(void)
 	vterm_output_set_callback(con.vterm, output_callback, NULL);
 
 	con.vts = vterm_obtain_screen(con.vterm);
+	vterm_screen_enable_altscreen(con.vts, 1);
 	vterm_screen_reset(con.vts, 1);
 	vterm_screen_set_callbacks(con.vts, &vtscrcb, NULL);
 

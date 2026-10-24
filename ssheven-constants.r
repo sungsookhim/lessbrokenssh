@@ -16,8 +16,9 @@
 #define SSHEVEN_RELEASE_REGION      verUS
 
 /* requested number of bytes for RAM, used in SIZE resource */
-#define SSHEVEN_MINIMUM_PARTITION   2*1024*1024
-#define SSHEVEN_REQUIRED_PARTITION  SSHEVEN_MINIMUM_PARTITION
+/* scrollback (up to 1000 lines) needs room beyond upstream's 2 MB */
+#define SSHEVEN_MINIMUM_PARTITION   3*1024*1024
+#define SSHEVEN_REQUIRED_PARTITION  4*1024*1024
 
 /* size in bytes for recv and send thread buffers */
 /* making this too large is bad for responsiveness on 68k machines */

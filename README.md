@@ -29,6 +29,7 @@ What works so far, compared with ssheven 0.9.0:
 | Japanese, Korean, Chinese | `◊` | the system's own fonts, when those scripts are installed |
 | Wide characters and emoji | line shifts by a column | correct widths (Unicode 16, emoji with VS16) |
 | Colors | 8 colors, `TERM=xterm-16color` | 256-color and truecolor in real color on 4-bit and deeper screens, `TERM=xterm-256color` |
+| Scrollback | none | 1,000 lines with a scroll bar and Shift-Page Up/Down; full-screen programs use the alternate screen |
 
 It also fixes a bug in upstream's unreleased code, where the port typed in the connect dialog was dropped and connecting failed.
 
@@ -38,6 +39,7 @@ Known gaps:
 - **Truecolor:** the app asks the server for `COLORTERM=truecolor`, but sshd only passes it on with `AcceptEnv COLORTERM`. Otherwise add `export COLORTERM=truecolor` to your shell profile on the server.
 - **Copy and paste** of text outside Mac Roman.
 - **800×600 font:** the iMac still uses Monaco 9 (6×12 cells). A bigger TrueType font with its own glyph set is planned.
+- **Scrollback length** is fixed at 1,000 lines (`SCROLLBACK_LINES` in `ssheven-scrollback.h`); much more needs a bigger memory size in Get Info.
 - **CPU builds:** not measured yet.
 
 The design and plan are in [docs/design/](docs/design/README.md). The glyph and emoji tools are described in [tools/glyphs/README.md](tools/glyphs/README.md). Glyphs are plain text files in `glyphs/6x12/`, and emoji are PNGs in `glyphs/emoji/12x12/`, so both can be edited by hand.
