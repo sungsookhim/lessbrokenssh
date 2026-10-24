@@ -1,3 +1,37 @@
+lessbrokenssh
+-------------
+A hobby fork of [cy384/ssheven](https://github.com/cy384/ssheven).
+
+The goal is to SSH from my own old Macs into an EC2 instance and run the Claude CLI without the screen breaking apart. That means getting box drawing, Unicode and color right in a modern full-screen terminal app.
+
+Machines I want it to run on:
+
+| Machine | CPU | Build |
+|---|---|---|
+| Macintosh LC II | 68030, no FPU | `68030` |
+| Macintosh LC 475 | 68LC040, no FPU | `68040` |
+| iMac G3 | PowerPC 750 (G3) | `g3` |
+
+I'm also checking whether builds tuned for one CPU are actually faster than the generic `68020` and `601` builds, or whether they make no real difference.
+
+### building
+
+Needs podman (or docker, with `ENGINE=docker`). The first run builds a container with the [Retro68](https://github.com/autc04/Retro68/) toolchain and Apple's Universal Interfaces.
+
+```
+./build.sh               # all targets: 68020 68030 68040 601 g3
+./build.sh 68030 g3      # just these
+./build.sh shell         # shell inside the build container
+```
+
+Each target produces `dist/ssheven-<cpu>.dsk` (HFS disk image) and `dist/ssheven-<cpu>.bin` (MacBinary). All 68k builds are soft-float, so they run on FPU-less machines like the LC II and LC 475.
+
+Development happens on the `work` branch. `master` stays identical to upstream.
+
+The original ssheven README follows.
+
+---
+
 ![ssheven box](http://www.cy384.com/media/img/ssheven_box_front_small.png)
 
 ssheven
