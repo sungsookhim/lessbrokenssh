@@ -34,10 +34,6 @@ int font_offset = 0;
 
 // scrollback view: how many lines up from the live screen we're looking (0 is live)
 static int view_offset = 0;
-
-// a full-screen program (btop, vim, maybe the Claude CLI) is on the alternate
-// screen, which has no scrollback; page keys then belong to the program
-static int alt_screen = 0;
 static ControlHandle scroll_bar = NULL;
 static int scroll_bar_dirty = 0;
 
@@ -1138,9 +1134,6 @@ int settermprop(VTermProp prop, VTermValue *val, void *user)
 			clear_selection();
 			return 1;
 		case VTERM_PROP_ALTSCREEN: // bool
-			alt_screen = val->boolean;
-			if (alt_screen) console_scroll_to_bottom();
-			return 1;
 		case VTERM_PROP_ICONNAME: // string
 		case VTERM_PROP_REVERSE: //bool
 		case VTERM_PROP_CURSORSHAPE: // number
@@ -1230,16 +1223,6 @@ void console_scroll(int lines)
 void console_scroll_to_bottom(void)
 {
 	if (view_offset != 0) console_scroll(-view_offset);
-}
-
-// page up (direction 1) or down (-1): through the scrollback, or, when a
-// full-screen program has the screen, as page up/down keys to that program
-void console_page(int direction)
-{
-	if (alt_screen)
-		vterm_keyboard_key(con.vterm, (direction > 0) ? VTERM_KEY_PAGEUP : VTERM_KEY_PAGEDOWN, VTERM_MOD_NONE);
-	else
-		console_scroll(direction * console_page_lines());
 }
 
 // a page is the window less one line, so a line of context stays on screen

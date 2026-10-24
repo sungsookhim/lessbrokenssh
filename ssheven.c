@@ -581,14 +581,8 @@ int handle_keypress(EventRecord* event)
 {
 	unsigned char c = event->message & charCodeMask;
 
-	// command-up/down page through history (or, for a full-screen program, send
-	// page up/down), for keyboards without page keys; repeats while held
-	if ((event->modifiers & cmdKey) && (c == kUpArrowCharCode || c == kDownArrowCharCode))
-	{
-		console_page((c == kUpArrowCharCode) ? 1 : -1);
-	}
 	// if we have a key and command, and it's not autorepeating
-	else if (c && event->what != autoKey && event->modifiers & cmdKey)
+	if (c && event->what != autoKey && event->modifiers & cmdKey)
 	{
 		switch (c)
 		{
@@ -617,7 +611,7 @@ int handle_keypress(EventRecord* event)
 	else if (c && (event->modifiers & shiftKey) && (c == kPageUpCharCode || c == kPageDownCharCode))
 	{
 		// shift-page up/down scroll back through history, like most terminals
-		console_page((c == kPageUpCharCode) ? 1 : -1);
+		console_scroll((c == kPageUpCharCode) ? console_page_lines() : -console_page_lines());
 	}
 	else if (c)
 	{
