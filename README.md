@@ -1,5 +1,7 @@
 lessbrokenssh
 -------------
+I made this fork with Claude ([Claude Code](https://claude.com/claude-code)) so I could work on my projects from the old Macs I have at hand.
+
 A hobby fork of [cy384/ssheven](https://github.com/cy384/ssheven), renamed so the two can live side by side: the app, its source files and its builds are called lessbrokenssh, and it keeps its own preferences and known-hosts files (`lessbrokenssh Preferences`, `lessbrokenssh known_hosts`) and creator code (`LBSH`). It's still under ssheven's BSD 2-clause license, with cy384's copyright; see `LICENSE`.
 
 The goal is to SSH from my own old Macs into an EC2 instance and run the Claude CLI without the screen breaking apart. That means getting box drawing, Unicode and color right in a modern full-screen terminal app.
