@@ -71,6 +71,8 @@ void set_terminal_string(void)
 	 * "xterm" everything
 	 * "xterm-mono" everything except color
 	 * "xterm-16color" classic 16 ANSI colors only
+	 * "xterm-256color" 256 colors; lessbrokenssh draws them (and truecolor)
+	 *                  in real color on 4-bit and deeper screens
 	 */
 	switch (prefs.display_mode)
 	{
@@ -78,7 +80,7 @@ void set_terminal_string(void)
 			prefs.terminal_string = "xterm-mono";
 			break;
 		case COLOR:
-			prefs.terminal_string = "xterm-16color";
+			prefs.terminal_string = "xterm-256color";
 			break;
 		default:
 			prefs.terminal_string = SSHEVEN_DEFAULT_TERM_STRING;
@@ -201,6 +203,7 @@ void init_prefs(void)
 	prefs.terminal_string = SSHEVEN_DEFAULT_TERM_STRING;
 	prefs.auth_type = USE_PASSWORD;
 	prefs.display_mode = detect_color_screen() ? COLOR : FASTEST;
+	set_terminal_string();
 	prefs.fg_color = blackColor;
 	prefs.bg_color = whiteColor;
 	prefs.font_size = 9;
@@ -459,6 +462,7 @@ void preferences_window(void)
 	{
 		// read menu values into prefs
 		prefs.display_mode = GetControlValue(term_type_menu) - 1;
+		set_terminal_string();
 
 		// TODO: don't save colors, make it take effect immediately
 		int save_bg = prefs.bg_color;

@@ -279,9 +279,65 @@ uint8_t vterm_color_to_idx(VTermColor c)
 	return (uint8_t)((c.rgb.red > 127) | ((c.rgb.green > 127) << 1) | ((c.rgb.blue > 127) << 2));
 }
 
-// a cell's colors as idx2qd indexes
+// whether this redraw uses real RGB colors (4-bit and deeper screens, which
+// QuickDraw maps to the nearest color they can show) or the 8 QuickDraw colors
+static int rgb_colors = 0;
+
+// QuickDraw's classic color constants as 0xRRGGBB, for the default colors
+static uint32_t qd2rgb(long qdc)
+{
+	switch (qdc)
+	{
+		case whiteColor: return 0xFFFFFF;
+		case redColor: return 0xFF0000;
+		case greenColor: return 0x00FF00;
+		case blueColor: return 0x0000FF;
+		case cyanColor: return 0x00FFFF;
+		case magentaColor: return 0xFF00FF;
+		case yellowColor: return 0xFFFF00;
+		default: return 0x000000;
+	}
+}
+
+// any vterm color as 0xRRGGBB; the default colors are the user's preferences
+// exactly, since libvterm's default palette has a light grey for white
+static uint32_t vterm_color_to_rgb(VTermColor c, int is_fg)
+{
+	if (is_fg && VTERM_COLOR_IS_DEFAULT_FG(&c)) return qd2rgb(prefs.fg_color);
+	if (!is_fg && VTERM_COLOR_IS_DEFAULT_BG(&c)) return qd2rgb(prefs.bg_color);
+
+	vterm_screen_convert_color_to_rgb(con.vts, &c);
+	return ((uint32_t)c.rgb.red << 16) | ((uint32_t)c.rgb.green << 8) | c.rgb.blue;
+}
+
+// set the port's colors from values cell_colors() gave
+static void set_cell_colors(int fg, int bg)
+{
+	if (rgb_colors)
+	{
+		// 8-bit channels to QuickDraw's 16-bit ones: 0xAB -> 0xABAB
+		RGBColor f = { (unsigned short)(((fg >> 16) & 0xFF) * 257), (unsigned short)(((fg >> 8) & 0xFF) * 257), (unsigned short)((fg & 0xFF) * 257) };
+		RGBColor b = { (unsigned short)(((bg >> 16) & 0xFF) * 257), (unsigned short)(((bg >> 8) & 0xFF) * 257), (unsigned short)((bg & 0xFF) * 257) };
+		RGBForeColor(&f);
+		RGBBackColor(&b);
+	}
+	else
+	{
+		ForeColor(idx2qd[fg]);
+		BackColor(idx2qd[bg]);
+	}
+}
+
+// a cell's colors, as 0xRRGGBB when rgb_colors is on, otherwise idx2qd indexes
 void cell_colors(const VTermScreenCell* cell, int* fg, int* bg)
 {
+	if (rgb_colors)
+	{
+		*fg = (int)vterm_color_to_rgb(cell->fg, 1);
+		*bg = (int)vterm_color_to_rgb(cell->bg, 0);
+		return;
+	}
+
 	*fg = vterm_color_to_idx(cell->fg);
 	*bg = vterm_color_to_idx(cell->bg);
 
@@ -543,6 +599,8 @@ inline void draw_resize_corner(void)
 
 void draw_screen_color(Rect* r)
 {
+	rgb_colors = color_qd && screen_depth() >= 4;
+
 	// don't clobber font settings
 	short save_font      = qd.thePort->txFont;
 	short save_font_size = qd.thePort->txSize;
@@ -637,16 +695,8 @@ void draw_screen_color(Rect* r)
 			if (next_fg != run_fg || next_bg != run_bg || next_face != run_face || (vtsc.attrs.reverse ^ (i < select_end && i >= select_start)) != run_inverted)
 			{
 				// draw what we've got so far
-				if (run_inverted)
-				{
-					BackColor(idx2qd[run_fg]);
-					ForeColor(idx2qd[run_bg]);
-				}
-				else
-				{
-					BackColor(idx2qd[run_bg]);
-					ForeColor(idx2qd[run_fg]);
-				}
+				if (run_inverted) set_cell_colors(run_bg, run_fg);
+				else set_cell_colors(run_fg, run_bg);
 
 				EraseRect(&run_rect);
 				MoveTo(run_rect.left, vertical_offset);
@@ -671,16 +721,8 @@ void draw_screen_color(Rect* r)
 			// if we're at the last cell in the row, draw the run
 			if (pos.col == con.size_x - 1)
 			{
-				if (run_inverted)
-				{
-					BackColor(idx2qd[run_fg]);
-					ForeColor(idx2qd[run_bg]);
-				}
-				else
-				{
-					BackColor(idx2qd[run_bg]);
-					ForeColor(idx2qd[run_fg]);
-				}
+				if (run_inverted) set_cell_colors(run_bg, run_fg);
+				else set_cell_colors(run_fg, run_bg);
 
 				EraseRect(&run_rect);
 				MoveTo(run_rect.left, vertical_offset);
