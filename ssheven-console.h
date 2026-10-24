@@ -27,3 +27,5 @@ size_t get_selection(char** selection);
 void clear_selection(void);
 
 void font_size_change(void);
+
+void print_display_info(void);

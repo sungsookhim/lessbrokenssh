@@ -1,0 +1,33 @@
+           1234567890123456789012345678901234|
+           every | below should line up      |
+ascii      The quick brown fox 0123456789    |
+latin1     café naïve Ünïcödé ñ ß ©®°±       |
+box light  ─│┌┐└┘├┤┬┴┼                       |
+box heavy  ━┃┏┓┗┛┣┫┳┻╋                       |
+box double ═║╔╗╚╝╠╣╦╩╬                       |
+box round  ╭─╮│╰─╯                           |
+blocks v   ▁▂▃▄▅▆▇█                          |
+blocks h   ▏▎▍▌▋▊▉█                          |
+halves     ▀▄▌▐█                             |
+quadrants  ▖▗▘▝▙▛▜▟▚▞                        |
+shades     ░▒▓█                              |
+braille    ⠁⠃⠇⡇⣇⣧⣷⣿ ⣀⣤⣶⣿                     |
+claude     ⏺ ⎿ ✻ ✢ ✳ ✶ ✽ · ❯ ⏵ … ⧉           |
+checks     ✓ ✔ ✗ ✘ ● ○ ◆ ◇ ▶ ▸ ★ ☐ ☒         |
+arrows     ← ↑ → ↓ ↵ ➜ ⇡ ⇣                   |
+powerline                               |
+emoji      ✅ ❌ 🚀 ✨ 🎉 📁 🔍 💡           |
+emoji vs16 ⚠️ ❤️ ✔️ ☑️                       |
+emoji new  🫠 🫨 🪿                          |
+korean     한국어 텍스트                     |
+japanese   日本語 カタカナ ひらがな          |
+chinese    中文 漢字                         |
+fullwidth  ＡＢＣ１２３                      |
+frame      ╭────────────────────────────────╮
+           │ ✻ Welcome to Claude Code!      │
+           │ ⏺ Reading ssheven.c            │
+           │  ⎿  Read 1396 lines            │
+           ╰────────────────────────────────╯
+logo        ▐▛███▜▌
+           ▝▜█████▛▘
+             ▘▘ ▝▝

@@ -13,6 +13,8 @@
 #include <string.h>
 
 #include <Sound.h>
+#include <Gestalt.h>
+#include <Script.h>
 
 #include <vterm.h>
 
@@ -68,6 +70,24 @@ inline Rect cell_rect(int x, int y, Rect bounds)
 	return r;
 }
 
+// the Mac Roman byte to draw for a cell (see docs/design/0001-unicode-rendering.md)
+static inline char cell_text(const VTermScreenCell* cell)
+{
+	uint32_t c = cell->chars[0];
+
+	if (c == 0) return ' ';
+
+	// right half of a wide character; the left half covers both cells
+	if (c == (uint32_t)-1) return ' ';
+
+	if (c < 128) return (char)c;
+
+	// normalize some unicode
+	if (c <= 0xFFFF) return map_unicode(c);
+
+	return MAC_ROMAN_LOZENGE;
+}
+
 void print_string(const char* c)
 {
 	vterm_input_write(con.vterm, c, strlen(c));
@@ -115,6 +135,32 @@ uint8_t qd2idx(int qdc)
 
 // convert vterm's ANSI color indexes into Quickdraw colors
 int idx2qd[16] = { blackColor, redColor, greenColor, yellowColor, blueColor, magentaColor, cyanColor, whiteColor, blackColor, redColor, greenColor, yellowColor, blueColor, magentaColor, cyanColor, whiteColor };
+
+// map any vterm color (16, 256, or RGB) onto the 8 QuickDraw colors, as an index into idx2qd
+uint8_t vterm_color_to_idx(VTermColor c)
+{
+	if (VTERM_COLOR_IS_INDEXED(&c) && c.indexed.idx < 16) return c.indexed.idx & 7;
+
+	vterm_screen_convert_color_to_rgb(con.vts, &c);
+
+	// ANSI color order happens to be bit 0 red, bit 1 green, bit 2 blue
+	return (uint8_t)((c.rgb.red > 127) | ((c.rgb.green > 127) << 1) | ((c.rgb.blue > 127) << 2));
+}
+
+// a cell's colors as idx2qd indexes
+void cell_colors(const VTermScreenCell* cell, int* fg, int* bg)
+{
+	*fg = vterm_color_to_idx(cell->fg);
+	*bg = vterm_color_to_idx(cell->bg);
+
+	// with only 8 colors, distinct colors can collapse into one (like grey text
+	// on white), so fall back to the default colors rather than hide the text
+	if (*fg == *bg)
+	{
+		int default_fg = qd2idx(prefs.fg_color);
+		*fg = (*bg == default_fg) ? qd2idx(prefs.bg_color) : default_fg;
+	}
+}
 
 void point_to_cell(Point p, int* x, int* y)
 {
@@ -220,8 +266,8 @@ void select_word(void)
 		int ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
 
 		// TODO FIXME not really unicode safe
-		c = (char)vtsc.chars[0];
-		if (c == '\0' || c == ' ')
+		c = cell_text(&vtsc);
+		if (c == ' ')
 		{
 			next(&pos.col, &pos.row);
 			break;
@@ -242,8 +288,8 @@ void select_word(void)
 		int ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
 
 		// TODO FIXME not really unicode safe
-		c = (char)vtsc.chars[0];
-		if (c == '\0' || c == ' ')
+		c = cell_text(&vtsc);
+		if (c == ' ')
 		{
 			break;
 		}
@@ -336,7 +382,7 @@ size_t get_selection(char** selection)
 		int ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
 
 		// TODO FIXME not really unicode safe
-		output[i] = (char)vtsc.chars[0];
+		output[i] = cell_text(&vtsc);
 	}
 
 	output[len-1] = '\0';
@@ -416,7 +462,7 @@ void draw_screen_color(Rect* r)
 	short run_start_col, run_length;
 	short run_face, next_face;
 	int run_inverted;
-	int run_fg, run_bg;
+	int run_fg, run_bg, next_fg, next_bg;
 	int ok = 0;
 
 	for (pos.row = 0; pos.row < con.size_y; pos.row++)
@@ -430,8 +476,7 @@ void draw_screen_color(Rect* r)
 
 		run_inverted = run_start.attrs.reverse ^ (i < select_end && i >= select_start);
 
-		run_fg = run_start.fg.indexed.idx;
-		run_bg = run_start.bg.indexed.idx;
+		cell_colors(&run_start, &run_fg, &run_bg);
 
 		run_face = normal;
 		if (run_start.attrs.bold) run_face |= (condense|bold);
@@ -442,24 +487,8 @@ void draw_screen_color(Rect* r)
 		{
 			ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
 
-			uint32_t glyph = vtsc.chars[0];
-
-			if (glyph == 0) glyph = ' ';
-
-			// normalize some unicode
-			if (glyph > 127)
-			{
-				if (glyph <= 0xFFFF)
-				{
-					glyph = (uint32_t)map_unicode(glyph);
-				}
-				else
-				{
-					glyph = (uint32_t)MAC_ROMAN_LOZENGE;
-				}
-			}
-
-			row_text[pos.col] = (char)(glyph & 0xFF);
+			row_text[pos.col] = cell_text(&vtsc);
+			cell_colors(&vtsc, &next_fg, &next_bg);
 
 			next_face = normal;
 			if (vtsc.attrs.bold) next_face |= (condense|bold);
@@ -467,7 +496,7 @@ void draw_screen_color(Rect* r)
 			if (vtsc.attrs.underline) next_face |= underline;
 
 			// if we cannot add this cell to the run
-			if (vtsc.fg.indexed.idx != run_fg || vtsc.bg.indexed.idx != run_bg || next_face != run_face || (vtsc.attrs.reverse ^ (i < select_end && i >= select_start)) != run_inverted)
+			if (next_fg != run_fg || next_bg != run_bg || next_face != run_face || (vtsc.attrs.reverse ^ (i < select_end && i >= select_start)) != run_inverted)
 			{
 				// draw what we've got so far
 				if (run_inverted)
@@ -488,8 +517,8 @@ void draw_screen_color(Rect* r)
 
 				// then reset everything to start a new run
 				run_inverted = vtsc.attrs.reverse ^ (i < select_end && i >= select_start);
-				run_fg = vtsc.fg.indexed.idx;
-				run_bg = vtsc.bg.indexed.idx;
+				run_fg = next_fg;
+				run_bg = next_bg;
 				run_face = next_face;
 				run_start_col = (short)pos.col;
 				run_rect = cell_rect(pos.col, pos.row, con.win->portRect);
@@ -616,24 +645,7 @@ void draw_screen_fast(Rect* r)
 		{
 			int ret = vterm_screen_get_cell(con.vts, pos, &here);
 
-			uint32_t glyph = here.chars[0];
-
-			if (glyph == 0) glyph = ' ';
-
-			// normalize some unicode
-			if (glyph > 127)
-			{
-				if (glyph <= 0xFFFF)
-				{
-					glyph = (uint32_t)map_unicode(glyph);
-				}
-				else
-				{
-					glyph = (uint32_t)MAC_ROMAN_LOZENGE;
-				}
-			}
-
-			row_text[pos.col] = (char)(glyph & 0xFF);
+			row_text[pos.col] = cell_text(&here);
 
 			bool invert = here.attrs.reverse ^ (i < select_end && i >= select_start);
 			row_invert[pos.col] = invert;
@@ -764,6 +776,32 @@ void printf_i(const char* str, ...)
 	}
 
 	va_end(args);
+}
+
+// one line about the display, so we know what cell sizes and depths to make glyphs for
+void print_display_info(void)
+{
+	Rect screen = qd.screenBits.bounds;
+	int depth = 1;
+
+	long qd_version = 0;
+	if (Gestalt(gestaltQuickdrawVersion, &qd_version) == noErr && qd_version >= gestalt8BitQD)
+	{
+		depth = (**(**GetMainDevice()).gdPMap).pixelSize;
+	}
+
+	printf_i("display: screen %dx%d %d-bit, cell %dx%d (Monaco %d), scripts:",
+		screen.right - screen.left, screen.bottom - screen.top, depth,
+		(int)con.cell_width, (int)con.cell_height, prefs.font_size);
+
+	int cjk = 0;
+	if (GetScriptVariable(smJapanese, smScriptEnabled)) { printf_i(" JP"); cjk = 1; }
+	if (GetScriptVariable(smKorean, smScriptEnabled)) { printf_i(" KR"); cjk = 1; }
+	if (GetScriptVariable(smTradChinese, smScriptEnabled)) { printf_i(" TC"); cjk = 1; }
+	if (GetScriptVariable(smSimpChinese, smScriptEnabled)) { printf_i(" SC"); cjk = 1; }
+	if (!cjk) printf_i(" none");
+
+	printf_i("\r\n");
 }
 
 int bell(void* user)

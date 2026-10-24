@@ -1379,6 +1379,8 @@ int main(int argc, char** argv)
 	printf_i("68k mode.\r\n");
 	#endif
 
+	print_display_info();
+
 	BeginUpdate(con.win);
 	draw_screen(&(con.win->portRect));
 	EndUpdate(con.win);
