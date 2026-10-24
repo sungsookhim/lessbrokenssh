@@ -16,7 +16,7 @@ I'm also checking whether builds tuned for one CPU are actually faster than the 
 
 ### status
 
-Tested on the iMac G3 (Mac OS 9, 800×600, 32-bit color) against an EC2 host: **the Claude CLI and btop draw correctly**, with their frames, logo, graphs, symbols and colors. The LC 475 and LC II haven't been tried yet.
+Tested against an EC2 host on the iMac G3 (Mac OS 9, 800×600, 32-bit color, `g3` build) and the LC 475 (thousands of colors, `68040` build): **the Claude CLI and btop draw correctly**, with their frames, logo, graphs, symbols and colors. The LC II hasn't been tried yet.
 
 What works so far, compared with ssheven 0.9.0:
 

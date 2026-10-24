@@ -18,7 +18,8 @@ void printf_i(const char* c, ...);
 
 void check_cursor(void);
 
-void mouse_click(Point p, int click);
+// select: shift held, so select text even if the program wants the mouse
+void mouse_click(Point p, int click, int select);
 
 void update_console_colors(void);
 

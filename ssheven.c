@@ -618,6 +618,13 @@ int handle_keypress(EventRecord* event)
 		// typing goes to the live screen
 		console_scroll_to_bottom();
 
+		// shift-tab is "back tab", which the Claude CLI uses to cycle modes
+		if (c == '\t' && (event->modifiers & shiftKey))
+		{
+			ssh_write("\033[Z", 3);
+			return 0;
+		}
+
 		// get the unmodified version of the keypress
 		uint8_t unmodified_key = keycode_to_ascii[(event->message & keyCodeMask)>>8];
 
@@ -737,7 +744,7 @@ void event_loop(void)
 					case inContent:
 						GetMouse(&local_mouse_position);
 						if (!scroll_bar_click(local_mouse_position))
-							mouse_click(local_mouse_position, true);
+							mouse_click(local_mouse_position, true, (event.modifiers & shiftKey) != 0);
 						break;
 				}
 				break;
@@ -746,7 +753,7 @@ void event_loop(void)
 				if (con.mouse_state)
 				{
 					GetMouse(&local_mouse_position);
-					mouse_click(local_mouse_position, false);
+					mouse_click(local_mouse_position, false, (event.modifiers & shiftKey) != 0);
 				}
 				break;
 		}

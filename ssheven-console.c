@@ -334,9 +334,19 @@ static uint32_t vterm_color_to_rgb(VTermColor c, int is_fg)
 	return ((uint32_t)c.rgb.red << 16) | ((uint32_t)c.rgb.green << 8) | c.rgb.blue;
 }
 
+// the colors set_cell_colors() last set, so it can skip repeats; reset with
+// colors_known = 0 whenever anything else may have changed the port's colors
+static int colors_known = 0;
+static int known_fg, known_bg;
+
 // set the port's colors from values cell_colors() gave
 static void set_cell_colors(int fg, int bg)
 {
+	if (colors_known && fg == known_fg && bg == known_bg) return;
+	colors_known = 1;
+	known_fg = fg;
+	known_bg = bg;
+
 	if (rgb_colors)
 	{
 		// 8-bit channels to QuickDraw's 16-bit ones: 0xAB -> 0xABAB
@@ -514,21 +524,34 @@ void select_word(void)
 }
 
 // p is in window local coordinates
-void mouse_click(Point p, int click)
+void mouse_click(Point p, int click, int select)
 {
 	static Point last_click;
 	static unsigned last_click_time = 0;
+	static int sent_down = 0;
 
 	con.mouse_state = click;
 
-	if (con.mouse_mode == CLICK_SEND)
+	// send it to the program if it asked for the mouse, unless the user wants to
+	// select (shift-click, as in other terminals) or is looking at scrollback;
+	// a release goes wherever its press went
+	int send = click ? (con.mouse_mode == CLICK_SEND && !select && view_offset == 0) : sent_down;
+	if (click) sent_down = send;
+
+	if (send)
 	{
-		int row = p.v / con.cell_height;
-		int col = p.h / con.cell_width;
+		// cells start 2 px in from the window edge
+		int row = (p.v - 2) / con.cell_height;
+		int col = (p.h - 2) / con.cell_width;
+		if (row < 0) row = 0;
+		if (row >= con.size_y) row = con.size_y - 1;
+		if (col < 0) col = 0;
+		if (col >= con.size_x) col = con.size_x - 1;
+
 		vterm_mouse_move(con.vterm, row, col, VTERM_MOD_NONE);
 		vterm_mouse_button(con.vterm, 1, click, VTERM_MOD_NONE);
 	}
-	else if (con.mouse_mode == CLICK_SELECT)
+	else
 	{
 		if (click)
 		{
@@ -621,9 +644,32 @@ inline void draw_resize_corner(void)
 	con.win->clipRgn = old;
 }
 
+// the rows that need drawing: the ones the port's visible region touches.
+// Inside BeginUpdate that's only what was invalidated (new output, the cursor,
+// a selection), so unchanged rows aren't fetched, converted and drawn again
+// every time the event loop goes idle. last is one past the final row.
+static void rows_to_draw(const Rect* r, int* first, int* last)
+{
+	Rect box = (**qd.thePort->visRgn).rgnBBox;
+
+	if (box.top >= box.bottom)
+	{
+		*first = *last = 0;
+		return;
+	}
+
+	*first = (box.top - r->top - 2) / con.cell_height;
+	*last = (box.bottom - r->top - 2 + con.cell_height - 1) / con.cell_height;
+
+	if (*first < 0) *first = 0;
+	if (*last > con.size_y) *last = con.size_y;
+	if (*first > *last) *first = *last;
+}
+
 void draw_screen_color(Rect* r)
 {
 	rgb_colors = color_qd && screen_depth() >= 4;
+	colors_known = 0;
 
 	// don't clobber font settings
 	short save_font      = qd.thePort->txFont;
@@ -675,14 +721,18 @@ void draw_screen_color(Rect* r)
 	int row_emoji[con.size_x];
 	int32_t row_cjk[con.size_x];
 	Rect run_rect;
-	short vertical_offset = (short)(r->top + con.cell_height - font_offset + 2);
+	int first_row, last_row;
+	rows_to_draw(r, &first_row, &last_row);
+	i = first_row * con.size_x;
+
+	short vertical_offset = (short)(r->top + con.cell_height - font_offset + 2 + first_row * con.cell_height);
 	short run_start_col, run_length;
 	short run_face, next_face;
 	int run_inverted;
 	int run_fg, run_bg, next_fg, next_bg;
 	int ok = 0;
 
-	for (pos.row = 0; pos.row < con.size_y; pos.row++)
+	for (pos.row = first_row; pos.row < last_row; pos.row++)
 	{
 		pos.col = 0;
 		ok = view_cell(pos, &run_start);
@@ -845,9 +895,13 @@ void draw_screen_fast(Rect* r)
 
 	VTermScreenCell here = {0};
 
-	short vertical_offset = (short)(r->top + con.cell_height - font_offset + 2);
+	int first_row, last_row;
+	rows_to_draw(r, &first_row, &last_row);
+	i = first_row * con.size_x;
 
-	for (pos.row = 0; pos.row < con.size_y; pos.row++)
+	short vertical_offset = (short)(r->top + con.cell_height - font_offset + 2 + first_row * con.cell_height);
+
+	for (pos.row = first_row; pos.row < last_row; pos.row++)
 	{
 		erase_row(pos.row);
 
@@ -1073,8 +1127,9 @@ int settermprop(VTermProp prop, VTermValue *val, void *user)
 			con.cursor_visible = val->boolean;
 			return 1;
 		case VTERM_PROP_MOUSE: // number
-			// record whether or not the terminal wants mouse clicks
-			con.mouse_mode = (val->number == VTERM_PROP_MOUSE_CLICK) ? CLICK_SEND : CLICK_SELECT;
+			// record whether or not the terminal wants mouse clicks: any mouse
+			// mode does (btop and most programs ask for drag or move tracking)
+			con.mouse_mode = (val->number != VTERM_PROP_MOUSE_NONE) ? CLICK_SEND : CLICK_SELECT;
 			damage_selection();
 			clear_selection();
 			return 1;
