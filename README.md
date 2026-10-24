@@ -35,12 +35,22 @@ It also fixes a bug in upstream's unreleased code, where the port typed in the c
 
 Known gaps:
 
-- **Rare Korean syllables:** some Hangul shows `◊`, probably syllables outside the 2,350 in KS X 1001, which the classic Korean font can't reach. Under investigation.
+- **CJK needs the system's language kits.** Korean and Japanese draw with the Mac's own fonts, so a Mac without them (like an English System 7.6) shows `◊`. Hangul syllables outside the 2,350 in KS X 1001 also show `◊`, even with the Korean kit.
+- **Old Korean text files** are usually EUC-KR, not UTF-8, so `cat` shows `◊`. Convert them on the server: `iconv -f cp949 -t utf-8 file`.
 - **Truecolor:** the app asks the server for `COLORTERM=truecolor`, but sshd only passes it on with `AcceptEnv COLORTERM`. Otherwise add `export COLORTERM=truecolor` to your shell profile on the server.
-- **Copy and paste** of text outside Mac Roman.
-- **800×600 font:** the iMac still uses Monaco 9 (6×12 cells). A bigger TrueType font with its own glyph set is planned.
-- **Scrollback length** is fixed at 1,000 lines (`SCROLLBACK_LINES` in `ssheven-scrollback.h`); much more needs a bigger memory size in Get Info.
-- **CPU builds:** not measured yet.
+- **Scrollback** is 1,000 lines (`SCROLLBACK_LINES` in `ssheven-scrollback.h`); much more needs a bigger memory size in Get Info.
+
+To do, or ideas to keep in mind:
+
+- **Bundled CJK bitmaps** for Macs without the Korean or Japanese language kits (like an English System 7.6), and for the rare Hangul syllables outside KS X 1001. All 11,172 syllables plus kana and common kanji, exported like the emoji, would be about 250–400 KB. The catch: with 6×12 cells a CJK character only gets 12×12 px, which is the bare minimum. Complex Hangul (`읽 많 됐`) and dense kanji lose strokes, so this would be more worthwhile together with larger cells.
+- **Larger cells on 800×600** (8×16, so 16×16 for CJK): a TrueType base font and an 8×16 glyph and emoji set.
+- **Unicode copy and paste**, and typing in Korean or Japanese: text currently leaves the Mac as Mac Roman (or the script's own encoding), not UTF-8.
+- **Scrollback length** as a preference instead of a constant.
+- **Faster drawing on 68k:** draw each row's glyphs with one copy instead of one per cell, which matters most for btop's Braille graphs.
+- **Mouse dragging** for programs that track it (only press and release are sent now).
+- **Measure the CPU-tuned builds** against the generic `68020` and `601` ones.
+- **Ed25519 keys**, which this libssh2 build has turned off (RSA and ECDSA keys work).
+- **Report the port bug upstream** to cy384/ssheven, and **tag a release** with the `.bin` files.
 
 The design and plan are in [docs/design/](docs/design/README.md). The glyph and emoji tools are described in [tools/glyphs/README.md](tools/glyphs/README.md). Glyphs are plain text files in `glyphs/6x12/`, and emoji are PNGs in `glyphs/emoji/12x12/`, so both can be edited by hand.
 
