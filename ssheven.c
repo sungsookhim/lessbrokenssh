@@ -1072,9 +1072,11 @@ int intro_dialog(void)
 	GetDialogItemText((Handle)port_text_box, prefs.hostname+prefs.hostname[0]+1);
 	prefs.hostname[prefs.hostname[0]+1] = ':';
 
+	// keep the typed port in prefs too (upstream copied the old saved port over
+	// the typed one, leaving "host:" with no port when nothing was saved)
 	char* port_start = prefs.hostname + prefs.hostname[0] + 2;
-	strncpy(port_start, prefs.port+1, 254);
-	prefs.port[0] = (char)strlen(port_start);
+	strncpy(prefs.port+1, port_start, 254);
+	prefs.port[0] = (char)strlen(prefs.port+1);
 
 	GetDialogItemText((Handle)username_text_box, prefs.username);
 	prefs.username[prefs.username[0] + 1] = '\0';

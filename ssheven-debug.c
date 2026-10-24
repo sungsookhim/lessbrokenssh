@@ -200,3 +200,33 @@ const char* OT_event_string(int i)
 
 	return "OTLook_string should never return from here";
 }
+
+/* convert common OT errors into strings */
+const char* OT_error_string(int i)
+{
+	switch (i)
+	{
+		case kOTBadAddressErr:
+			return "bad address (kOTBadAddressErr)";
+		case kOTNoAddressErr:
+			return "no address (kOTNoAddressErr)";
+		case kOTOutStateErr:
+			return "wrong state (kOTOutStateErr)";
+		case kOTLookErr:
+			return "connection rejected or closed (kOTLookErr)";
+		case kOTNoDataErr:
+			return "no data (kOTNoDataErr)";
+		case kOTBadNameErr:
+			return "bad name, DNS lookup failed? (kOTBadNameErr)";
+		case kENETUNREACHErr:
+			return "network unreachable (kENETUNREACHErr)";
+		case kETIMEDOUTErr:
+			return "connection timed out (kETIMEDOUTErr)";
+		case kECONNREFUSEDErr:
+			return "connection refused (kECONNREFUSEDErr)";
+		case kEHOSTUNREACHErr:
+			return "no route to host (kEHOSTUNREACHErr)";
+		default:
+			return "see MacErrors.h";
+	}
+}
