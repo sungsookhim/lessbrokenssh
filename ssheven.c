@@ -677,10 +677,15 @@ void event_loop(void)
 
 	// maximum length of time to sleep (in ticks)
 	// GetCaretTime gets the number of ticks between system caret on/off time
-	unsigned long sleep_time = GetCaretTime() / 4;
+	unsigned long idle_sleep_time = GetCaretTime() / 4;
 
 	do
 	{
+		// while connected, barely sleep: the read thread only runs when we yield,
+		// so a long sleep holds back the server's echo of every keystroke (up to
+		// ~130 ms). Idle wakeups are cheap, since unchanged rows aren't redrawn.
+		unsigned long sleep_time = (read_thread_state == OPEN) ? 1 : idle_sleep_time;
+
 		// wait to get a GUI event
 		while (!WaitNextEvent(everyEvent, &event, sleep_time, NULL))
 		{
