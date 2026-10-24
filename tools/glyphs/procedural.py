@@ -320,6 +320,36 @@ def powerline_glyph(c, cp):
     return c.rows(threshold=0.4)
 
 
+# --- superscript and subscript digits ----------------------------------------
+
+# a 3x5 pixel digit font, small enough to sit in the top or bottom of a 6x12 cell
+SMALL_DIGITS = {
+    "0": ["###", "#.#", "#.#", "#.#", "###"],
+    "1": [".#.", "##.", ".#.", ".#.", "###"],
+    "2": ["##.", "..#", ".#.", "#..", "###"],
+    "3": ["##.", "..#", ".#.", "..#", "##."],
+    "4": ["#.#", "#.#", "###", "..#", "..#"],
+    "5": ["###", "#..", "##.", "..#", "##."],
+    "6": [".##", "#..", "###", "#.#", "###"],
+    "7": ["###", "..#", ".#.", ".#.", ".#."],
+    "8": ["###", "#.#", "###", "#.#", "###"],
+    "9": ["###", "#.#", "###", "..#", "##."],
+}
+
+SUPERSCRIPTS = {0x2070: "0", 0x00B9: "1", 0x00B2: "2", 0x00B3: "3",
+                **{0x2070 + n: str(n) for n in range(4, 10)}}
+SUBSCRIPTS = {0x2080 + n: str(n) for n in range(10)}
+
+
+def small_digit_glyph(c, digit, top):
+    """A 3x5 digit with its top at row `top`, a column in from the left."""
+    for y, row in enumerate(SMALL_DIGITS[digit]):
+        for x, px in enumerate(row):
+            if px == "#":
+                c.rect(1 + x, top + y, 2 + x, top + y + 1)
+    return c.rows()
+
+
 # --- driver ------------------------------------------------------------------
 
 def all_glyphs():
@@ -334,6 +364,11 @@ def all_glyphs():
         yield cp, braille_glyph
     for cp in (0xE0B0, 0xE0B1, 0xE0B2, 0xE0B3):
         yield cp, powerline_glyph
+    # superscripts sit near the top like the tops of capitals; subscripts at the baseline
+    for cp, digit in SUPERSCRIPTS.items():
+        yield cp, (lambda c, _cp, d=digit: small_digit_glyph(c, d, 1))
+    for cp, digit in SUBSCRIPTS.items():
+        yield cp, (lambda c, _cp, d=digit: small_digit_glyph(c, d, c.h // 2 + 1))
 
 
 def main():

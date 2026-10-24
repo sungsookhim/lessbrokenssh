@@ -1,0 +1,26 @@
+# Emoji to export with export_emoji.py, as 2-cell color bitmaps. Characters
+# separated by spaces; lines starting with # are comments. Grow this list with
+# capture.py, which reports what a real session used.
+
+# status and results
+✅ ❌ ⚠ ❗ ❓ ❕ ❔ ⛔ 🚫 🚨 🚧 💯 🆗 🆕 ⭐ 🌟 ✨ 🔥 💥 ⚡ 🎉 🎊 🏆 🥇 🎯 🏁 🚩
+
+# work and code
+🚀 💡 🔧 🔨 🛠 🐛 🧪 🧠 🤖 💻 🖥 ⌨ 📦 📌 📍 🔗 🔒 🔓 🔑 🔐 🛡 ⚙ 🧩 🧹 🧰 🔬 🪄
+📁 📂 📄 📃 📝 📋 📎 📏 📚 📖 🗂 🗑 💾 💿 🔍 🔎 📊 📈 📉 🏷 🆔 🔢
+🔄 🔁 ♻ ⏳ ⌛ ⏰ 📅 🔔 🔕 💬 💭 📢 📣 ✉ 📧 📤 📥 🌐 🌍
+
+# colored markers
+🔴 🟠 🟡 🟢 🔵 🟣 🟤 ⚫ ⚪ 🟥 🟧 🟨 🟩 🟦 🟪 🟫 ⬛ ⬜ 🔶 🔷 🔸 🔹 🔺 🔻
+
+# faces and hands
+😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 😉 😍 🤔 🤨 😐 😑 😶 🙄 😏 😴 😎 🤓 😕 😟 😢 😭 😱 😡 🤯 🥳 🫠 🫨
+👍 👎 👌 👀 👋 🙏 👏 💪 🤝 ✌ 🤞 👉 👈 👆 👇
+
+# hearts and misc
+❤ 🧡 💛 💚 💙 💜 🖤 🤍 💔 🎁 🎨 🐍 🦀 🐳 🐧 🪿 🍎 ☕ 🍺 🌈 ☀ 🌙 ❄ ☁ 🌧 🏠 💰 💸 🧭
+
+# text-style characters that become emoji with VS16 (like ☑️); without VS16 they
+# take one cell and draw as their symbol glyph, if there is one
+☑ ✔ ✖ ✳ ✴ ❇ ‼ ⁉ ➕ ➖ ➗ ➡ ⬅ ⬆ ⬇ ↗ ↘ ↙ ↖ ↩ ↪ ⤴ ⤵ ▶ ◀ ⏩ ⏪ ⏫ ⏬ ⏸ ⏹ ⏺ ⏭ ⏮
+ℹ ™ © ® ✏ ✒ ✂ ☎ ⌚ ⌨ ⏱ ⏲ ☑ ♻ ⚛ ☢ ☣ ⚕ ⚖ ⚗ ⚓ ⛓ ☮ ☯ ✝ ♠ ♣ ♥ ♦

@@ -11,6 +11,7 @@
 #include "ssheven-unicode.h"
 #include "ssheven-glyph.h"
 #include "ssheven-macroman.h"
+#include "ssheven-cjk.h"
 
 #include <string.h>
 
@@ -27,6 +28,46 @@
 char key_to_vterm[256] = { VTERM_KEY_NONE };
 
 int font_offset = 0;
+
+// Color QuickDraw is there (true on practically every 68020+ Mac); the console
+// window is a color window then, which emoji and real colors need
+static int color_qd = 0;
+
+// a port's colors, saved in a way that works for both kinds of window: color
+// ports keep a palette index in fgColor/bkColor, not a QuickDraw color constant
+struct port_colors
+{
+	long fg, bg;
+	RGBColor rgb_fg, rgb_bg;
+};
+
+static void save_colors(struct port_colors* c)
+{
+	if (color_qd)
+	{
+		GetForeColor(&c->rgb_fg);
+		GetBackColor(&c->rgb_bg);
+	}
+	else
+	{
+		c->fg = qd.thePort->fgColor;
+		c->bg = qd.thePort->bkColor;
+	}
+}
+
+static void restore_colors(const struct port_colors* c)
+{
+	if (color_qd)
+	{
+		RGBForeColor(&c->rgb_fg);
+		RGBBackColor(&c->rgb_bg);
+	}
+	else
+	{
+		qd.thePort->fgColor = c->fg;
+		qd.thePort->bkColor = c->bg;
+	}
+}
 
 void setup_key_translation(void)
 {
@@ -88,10 +129,59 @@ static inline char cell_text(const VTermScreenCell* cell)
 	char mac = unicode_to_mac_roman(c);
 	if (mac) return mac;
 
+	// fullwidth letters and digits (ＡＢＣ１２３) when no CJK font draws them
+	if (c >= 0xFF01 && c <= 0xFF5E) return (char)(c - 0xFEE0);
+
 	// otherwise the nearest ASCII lookalike, if any
 	if (c <= 0xFFFF) return map_unicode(c);
 
 	return MAC_ROMAN_LOZENGE;
+}
+
+// bits per pixel of the main screen
+static int screen_depth(void)
+{
+	if (!color_qd) return 1;
+	return (**(**GetMainDevice()).gdPMap).pixelSize;
+}
+
+// load the glyph and emoji sets for the current cell size
+static void load_glyphs(void)
+{
+	static int cjk_ready = 0;
+	if (!cjk_ready)
+	{
+		cjk_init();
+		cjk_ready = 1;
+	}
+
+	glyphs_load(con.cell_width, con.cell_height);
+	emoji_load(con.cell_width, con.cell_height, screen_depth());
+}
+
+// the emoji to draw over a cell and the one after it, or -1; only for
+// characters that take two cells, so a one-cell ✔ keeps its symbol and ✔️ gets the emoji
+static inline int cell_emoji(const VTermScreenCell* cell)
+{
+	uint32_t c = cell->chars[0];
+
+	if (cell->width != 2 || c < 128 || c == (uint32_t)-1) return -1;
+
+	return emoji_index(c);
+}
+
+// draw the emoji in a row, after everything else in it, since each covers two cells
+static void draw_row_emoji(const int* row_emoji, int row)
+{
+	for (int col = 0; col < con.size_x - 1; col++)
+	{
+		if (row_emoji[col] >= 0)
+		{
+			Rect r = cell_rect(col, row, con.win->portRect);
+			r.right += con.cell_width;
+			emoji_draw(row_emoji[col], &r);
+		}
+	}
 }
 
 // the atlas glyph to draw over a cell, or -1 to just use cell_text()
@@ -104,8 +194,16 @@ static inline int cell_glyph(const VTermScreenCell* cell)
 	return glyph_index(c);
 }
 
-// draw the atlas glyphs in one run of a row, in the current colors
-static void draw_run_glyphs(const int* row_glyph, int row, int start_col, int length)
+// a two-cell character to draw with a CJK script font, or -1
+static inline int32_t cell_cjk(const VTermScreenCell* cell)
+{
+	if (cell->width != 2) return -1;
+
+	return cjk_lookup(cell->chars[0]);
+}
+
+// draw the atlas glyphs and CJK characters in one run of a row, in the current colors
+static void draw_run_glyphs(const int* row_glyph, const int32_t* row_cjk, int row, int start_col, int length)
 {
 	for (int col = start_col; col < start_col + length; col++)
 	{
@@ -113,6 +211,11 @@ static void draw_run_glyphs(const int* row_glyph, int row, int start_col, int le
 		{
 			Rect r = cell_rect(col, row, con.win->portRect);
 			glyph_draw(row_glyph[col], &r);
+		}
+		else if (row_cjk[col] >= 0)
+		{
+			Rect r = cell_rect(col, row, con.win->portRect);
+			cjk_draw(row_cjk[col], r.left, (short)(r.top + con.cell_height - font_offset), con.cell_height);
 		}
 	}
 }
@@ -444,8 +547,8 @@ void draw_screen_color(Rect* r)
 	short save_font      = qd.thePort->txFont;
 	short save_font_size = qd.thePort->txSize;
 	short save_font_face = qd.thePort->txFace;
-	long save_font_fg   = qd.thePort->fgColor;
-	long save_font_bg   = qd.thePort->bkColor;
+	struct port_colors save_font_colors;
+	save_colors(&save_font_colors);
 
 	TextFont(kFontIDMonaco);
 	TextSize(prefs.font_size); // fn takes short
@@ -487,6 +590,8 @@ void draw_screen_color(Rect* r)
 
 	char row_text[con.size_x];
 	int row_glyph[con.size_x];
+	int row_emoji[con.size_x];
+	int32_t row_cjk[con.size_x];
 	Rect run_rect;
 	short vertical_offset = (short)(r->top + con.cell_height - font_offset + 2);
 	short run_start_col, run_length;
@@ -517,8 +622,10 @@ void draw_screen_color(Rect* r)
 		{
 			ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
 
-			row_glyph[pos.col] = cell_glyph(&vtsc);
-			row_text[pos.col] = (row_glyph[pos.col] >= 0) ? ' ' : cell_text(&vtsc);
+			row_emoji[pos.col] = cell_emoji(&vtsc);
+			row_glyph[pos.col] = (row_emoji[pos.col] >= 0) ? -1 : cell_glyph(&vtsc);
+			row_cjk[pos.col] = (row_emoji[pos.col] >= 0 || row_glyph[pos.col] >= 0) ? -1 : cell_cjk(&vtsc);
+			row_text[pos.col] = (row_emoji[pos.col] >= 0 || row_glyph[pos.col] >= 0 || row_cjk[pos.col] >= 0) ? ' ' : cell_text(&vtsc);
 			cell_colors(&vtsc, &next_fg, &next_bg);
 
 			next_face = normal;
@@ -545,7 +652,7 @@ void draw_screen_color(Rect* r)
 				MoveTo(run_rect.left, vertical_offset);
 				TextFace(run_face);
 				DrawText(row_text, run_start_col, run_length);
-				draw_run_glyphs(row_glyph, pos.row, run_start_col, run_length);
+				draw_run_glyphs(row_glyph, row_cjk, pos.row, run_start_col, run_length);
 
 				// then reset everything to start a new run
 				run_inverted = vtsc.attrs.reverse ^ (i < select_end && i >= select_start);
@@ -579,7 +686,7 @@ void draw_screen_color(Rect* r)
 				MoveTo(run_rect.left, vertical_offset);
 				TextFace(run_face);
 				DrawText(row_text, run_start_col, run_length);
-				draw_run_glyphs(row_glyph, pos.row, run_start_col, run_length);
+				draw_run_glyphs(row_glyph, row_cjk, pos.row, run_start_col, run_length);
 			}
 			else
 			{
@@ -588,6 +695,8 @@ void draw_screen_color(Rect* r)
 
 			i++;
 		}
+
+		draw_row_emoji(row_emoji, pos.row);
 
 		vertical_offset += con.cell_height;
 	}
@@ -602,8 +711,7 @@ void draw_screen_color(Rect* r)
 	TextFont(save_font);
 	TextSize(save_font_size);
 	TextFace(save_font_face);
-	qd.thePort->fgColor = save_font_fg;
-	qd.thePort->bkColor = save_font_bg;
+	restore_colors(&save_font_colors);
 
 	draw_resize_corner();
 }
@@ -624,14 +732,14 @@ void draw_screen_fast(Rect* r)
 	short save_font      = qd.thePort->txFont;
 	short save_font_size = qd.thePort->txSize;
 	short save_font_face = qd.thePort->txFace;
-	long save_font_fg   = qd.thePort->fgColor;
-	long save_font_bg   = qd.thePort->bkColor;
+	struct port_colors save_font_colors;
+	save_colors(&save_font_colors);
 
 	TextFont(kFontIDMonaco);
 	TextSize(prefs.font_size);
 	TextFace(normal);
-	qd.thePort->bkColor = prefs.bg_color;
-	qd.thePort->fgColor = prefs.fg_color;
+	BackColor(prefs.bg_color);
+	ForeColor(prefs.fg_color);
 	TextMode(srcOr); // or mode is faster for drawing black on white
 
 	int select_start = -1;
@@ -665,6 +773,8 @@ void draw_screen_fast(Rect* r)
 	char row_text[con.size_x];
 	char row_invert[con.size_x];
 	int row_glyph[con.size_x];
+	int row_emoji[con.size_x];
+	int32_t row_cjk[con.size_x];
 	Rect cr;
 
 	VTermScreenCell here = {0};
@@ -679,8 +789,10 @@ void draw_screen_fast(Rect* r)
 		{
 			int ret = vterm_screen_get_cell(con.vts, pos, &here);
 
-			row_glyph[pos.col] = cell_glyph(&here);
-			row_text[pos.col] = (row_glyph[pos.col] >= 0) ? ' ' : cell_text(&here);
+			row_emoji[pos.col] = cell_emoji(&here);
+			row_glyph[pos.col] = (row_emoji[pos.col] >= 0) ? -1 : cell_glyph(&here);
+			row_cjk[pos.col] = (row_emoji[pos.col] >= 0 || row_glyph[pos.col] >= 0) ? -1 : cell_cjk(&here);
+			row_text[pos.col] = (row_emoji[pos.col] >= 0 || row_glyph[pos.col] >= 0 || row_cjk[pos.col] >= 0) ? ' ' : cell_text(&here);
 
 			bool invert = here.attrs.reverse ^ (i < select_end && i >= select_start);
 			row_invert[pos.col] = invert;
@@ -690,7 +802,8 @@ void draw_screen_fast(Rect* r)
 
 		MoveTo(r->left + 2, vertical_offset);
 		DrawText(row_text, 0, con.size_x);
-		draw_run_glyphs(row_glyph, pos.row, 0, con.size_x);
+		draw_run_glyphs(row_glyph, row_cjk, pos.row, 0, con.size_x);
+		draw_row_emoji(row_emoji, pos.row);
 
 		for (int i = 0; i < con.size_x; i++)
 		{
@@ -713,8 +826,7 @@ void draw_screen_fast(Rect* r)
 	TextFont(save_font);
 	TextSize(save_font_size);
 	TextFace(save_font_face);
-	qd.thePort->fgColor = save_font_fg;
-	qd.thePort->bkColor = save_font_bg;
+	restore_colors(&save_font_colors);
 
 	//draw_resize_corner();
 }
@@ -818,18 +930,12 @@ void printf_i(const char* str, ...)
 void print_display_info(void)
 {
 	Rect screen = qd.screenBits.bounds;
-	int depth = 1;
+	int depth = screen_depth();
 
-	long qd_version = 0;
-	if (Gestalt(gestaltQuickdrawVersion, &qd_version) == noErr && qd_version >= gestalt8BitQD)
-	{
-		depth = (**(**GetMainDevice()).gdPMap).pixelSize;
-	}
-
-	printf_i("display: screen %dx%d %d-bit, cell %dx%d (Monaco %d), glyphs %d, scripts:",
+	printf_i("display: screen %dx%d %d-bit, cell %dx%d (Monaco %d), glyphs %d, emoji %d, scripts:",
 		screen.right - screen.left, screen.bottom - screen.top, depth,
 		(int)con.cell_width, (int)con.cell_height, prefs.font_size,
-		glyphs_count());
+		glyphs_count(), emoji_loaded_count());
 
 	int cjk = 0;
 	if (GetScriptVariable(smJapanese, smScriptEnabled)) { printf_i(" JP"); cjk = 1; }
@@ -837,6 +943,9 @@ void print_display_info(void)
 	if (GetScriptVariable(smTradChinese, smScriptEnabled)) { printf_i(" TC"); cjk = 1; }
 	if (GetScriptVariable(smSimpChinese, smScriptEnabled)) { printf_i(" SC"); cjk = 1; }
 	if (!cjk) printf_i(" none");
+
+	const char* fonts = cjk_scripts();
+	printf_i(", CJK fonts:%s", fonts[0] ? fonts : " none");
 
 	printf_i("\r\n");
 }
@@ -927,8 +1036,8 @@ void font_size_change()
 	short save_font = qd.thePort->txFont;
 	short save_font_size = qd.thePort->txSize;
 	short save_font_face = qd.thePort->txFace;
-	long save_font_fg   = qd.thePort->fgColor;
-	long save_font_bg   = qd.thePort->bkColor;
+	struct port_colors save_font_colors;
+	save_colors(&save_font_colors);
 
 	BackColor(prefs.bg_color);
 	ForeColor(prefs.fg_color);
@@ -949,7 +1058,7 @@ void font_size_change()
 
 	con.cell_width = CharWidth(' ');
 
-	glyphs_load(con.cell_width, con.cell_height);
+	load_glyphs();
 
 	TextFont(save_font);
 	TextSize(save_font_size);
@@ -959,22 +1068,20 @@ void font_size_change()
 	EraseRect(&(con.win->portRect));
 	InvalRect(&(con.win->portRect));
 
-	BackColor(save_font_bg);
-	ForeColor(save_font_fg);
+	restore_colors(&save_font_colors);
 }
 
 void reset_console(void)
 {
-	long save_fg = qd.thePort->fgColor;
-	long save_bg = qd.thePort->bkColor;
+	struct port_colors save;
+	save_colors(&save);
 
 	ForeColor(prefs.fg_color);
 	BackColor(prefs.bg_color);
 
 	EraseRect(&con.win->portRect);
 
-	ForeColor(save_fg);
-	BackColor(save_bg);
+	restore_colors(&save);
 
 	con.cursor_x = 0;
 	con.cursor_y = 0;
@@ -999,12 +1106,16 @@ void reset_console(void)
 
 void console_setup(void)
 {
+	// before anything saves colors, so saving and restoring agree
+	long qd_version = 0;
+	color_qd = Gestalt(gestaltQuickdrawVersion, &qd_version) == noErr && qd_version >= gestalt8BitQD;
+
 	// don't clobber font settings
 	short save_font = qd.thePort->txFont;
 	short save_font_size = qd.thePort->txSize;
 	short save_font_face = qd.thePort->txFace;
-	long save_font_fg   = qd.thePort->fgColor;
-	long save_font_bg   = qd.thePort->bkColor;
+	struct port_colors save_font_colors;
+	save_colors(&save_font_colors);
 
 	initialize_unicode_map();
 
@@ -1025,7 +1136,7 @@ void console_setup(void)
 	font_offset = fi.descent;
 	con.cell_width = CharWidth(' ');
 
-	glyphs_load(con.cell_width, con.cell_height);
+	load_glyphs();
 
 	TextFont(save_font);
 	TextSize(save_font_size);
@@ -1041,7 +1152,11 @@ void console_setup(void)
 
 	ConstStr255Param title = "\pssheven " SSHEVEN_VERSION;
 
-	WindowPtr win = NewWindow(NULL, &initial_window_bounds, title, true, documentProc, (WindowPtr)-1, true, 0);
+	WindowPtr win;
+	if (color_qd)
+		win = (WindowPtr)NewCWindow(NULL, &initial_window_bounds, title, true, documentProc, (WindowPtr)-1, true, 0);
+	else
+		win = NewWindow(NULL, &initial_window_bounds, title, true, documentProc, (WindowPtr)-1, true, 0);
 
 	Rect portRect = win->portRect;
 
@@ -1074,8 +1189,7 @@ void console_setup(void)
 
 	setup_key_translation();
 
-	BackColor(save_font_bg);
-	ForeColor(save_font_fg);
+	restore_colors(&save_font_colors);
 }
 
 // TODO: make this update all the cells with the default colors

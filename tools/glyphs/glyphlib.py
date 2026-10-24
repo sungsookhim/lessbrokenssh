@@ -27,6 +27,11 @@ def set_dir(w, h):
     return os.path.join(GLYPH_DIR, f"{w}x{h}")
 
 
+def emoji_dir(w, h):
+    """Emoji PNGs, w x h being the size of the image (two cells wide)."""
+    return os.path.join(GLYPH_DIR, "emoji", f"{w}x{h}")
+
+
 def glyph_path(w, h, cp):
     return os.path.join(set_dir(w, h), f"{cp:04X}.txt")
 

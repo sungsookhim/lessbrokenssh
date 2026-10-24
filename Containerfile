@@ -28,5 +28,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
         fonts-dejavu-core fonts-noto-core \
     && rm -rf /var/lib/apt/lists/*
 
+# color emoji for tools/glyphs/export_emoji.py: the Unicode 16 release, to match
+# the width table in our libvterm (Ubuntu's own copy stops at Unicode 14)
+ARG NOTO_EMOJI=https://github.com/googlefonts/noto-emoji/raw/v2.048/fonts/NotoColorEmoji.ttf
+RUN curl -fsSL "$NOTO_EMOJI" -o /usr/local/share/fonts/NotoColorEmoji.ttf
+
 ENV RETRO68_PATH=/Retro68-build
 WORKDIR /src
