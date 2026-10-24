@@ -39,3 +39,4 @@ int scroll_bar_click(Point p);
 void console_scroll(int lines);
 void console_scroll_to_bottom(void);
 int console_page_lines(void);
+void console_page(int direction);
