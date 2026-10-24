@@ -1,10 +1,12 @@
 #!/bin/bash
 set -e
 
-# set this to the root of your Retro68 build folder, e.g. ~/src/Retro68-build/
-RETRO68_PATH=change_me_please
-
-echo "Set your Retro68 build path in this script and delete this line!" && exit
+# set RETRO68_PATH to the root of your Retro68 build folder, e.g. ~/src/Retro68-build/
+# (the build container from ./build.sh sets it for you)
+if [[ -z $RETRO68_PATH ]]; then
+  echo "Set RETRO68_PATH to your Retro68 build folder, or use ./build.sh"
+  exit 1
+fi
 
 # check for nproc to count processors to build parallel
 BUILD_PARALLEL=
