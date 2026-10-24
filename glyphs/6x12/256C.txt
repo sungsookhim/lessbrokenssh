@@ -1,0 +1,13 @@
+# U+256C BOX DRAWINGS DOUBLE VERTICAL AND HORIZONTAL  source=procedural  edited=no
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+##.###
+......
+##.###
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..

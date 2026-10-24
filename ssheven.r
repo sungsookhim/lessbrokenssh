@@ -619,3 +619,6 @@ resource 'CNTL' (CNTL_PREF_FONT_SIZE) {
 	0,
 	""
 };
+
+/* glyph atlas, generated from glyphs/ by tools/glyphs/pack.py */
+#include "glyphs.r"

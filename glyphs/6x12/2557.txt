@@ -1,0 +1,13 @@
+# U+2557 BOX DRAWINGS DOUBLE DOWN AND LEFT  source=procedural  edited=no
+......
+......
+......
+......
+####..
+...#..
+##.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..

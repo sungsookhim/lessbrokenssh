@@ -1,0 +1,13 @@
+# U+2520 BOX DRAWINGS VERTICAL HEAVY AND RIGHT LIGHT  source=procedural  edited=no
+..##..
+..##..
+..##..
+..##..
+..##..
+..####
+..##..
+..##..
+..##..
+..##..
+..##..
+..##..

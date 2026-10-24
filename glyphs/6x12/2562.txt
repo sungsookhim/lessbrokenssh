@@ -1,0 +1,13 @@
+# U+2562 BOX DRAWINGS VERTICAL DOUBLE AND LEFT SINGLE  source=procedural  edited=no
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+####..
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..

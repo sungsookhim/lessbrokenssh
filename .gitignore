@@ -5,3 +5,6 @@ build/
 .vscode/
 build-*/
 dist/
+/*.jpeg
+/*.jpg
+__pycache__/

@@ -1,0 +1,13 @@
+# U+250B BOX DRAWINGS HEAVY QUADRUPLE DASH VERTICAL  source=procedural  edited=no
+..##..
+..##..
+......
+..##..
+..##..
+......
+..##..
+..##..
+......
+..##..
+..##..
+......

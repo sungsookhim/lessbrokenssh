@@ -1,0 +1,13 @@
+# U+2528 BOX DRAWINGS VERTICAL HEAVY AND LEFT LIGHT  source=procedural  edited=no
+..##..
+..##..
+..##..
+..##..
+..##..
+####..
+..##..
+..##..
+..##..
+..##..
+..##..
+..##..

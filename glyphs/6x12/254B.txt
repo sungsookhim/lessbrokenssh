@@ -1,0 +1,13 @@
+# U+254B BOX DRAWINGS HEAVY VERTICAL AND HORIZONTAL  source=procedural  edited=no
+..##..
+..##..
+..##..
+..##..
+..##..
+######
+######
+..##..
+..##..
+..##..
+..##..
+..##..

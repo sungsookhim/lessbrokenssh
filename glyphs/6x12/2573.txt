@@ -1,0 +1,13 @@
+# U+2573 BOX DRAWINGS LIGHT DIAGONAL CROSS  source=procedural  edited=no
+#....#
+##...#
+.#..##
+.##.#.
+..###.
+..##..
+..##..
+..###.
+.##.#.
+.#..##
+##...#
+#....#

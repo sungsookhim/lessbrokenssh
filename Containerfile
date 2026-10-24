@@ -22,5 +22,9 @@ RUN curl -fsSL "$INTERFACESFILE" -o /MPW-GM.img.bin \
 # would fail anyway when the container runs as a non-root user
 ENV INTERFACES=
 
+# for the glyph tools in tools/glyphs
+RUN apt-get update && apt-get install -y --no-install-recommends python3-pil \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV RETRO68_PATH=/Retro68-build
 WORKDIR /src

@@ -1,0 +1,13 @@
+# U+2560 BOX DRAWINGS DOUBLE VERTICAL AND RIGHT  source=procedural  edited=no
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.###
+.#....
+.#.###
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..

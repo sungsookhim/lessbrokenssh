@@ -9,6 +9,7 @@
 #include "ssheven-console.h"
 #include "ssheven-net.h"
 #include "ssheven-unicode.h"
+#include "ssheven-glyph.h"
 
 #include <string.h>
 
@@ -86,6 +87,29 @@ static inline char cell_text(const VTermScreenCell* cell)
 	if (c <= 0xFFFF) return map_unicode(c);
 
 	return MAC_ROMAN_LOZENGE;
+}
+
+// the atlas glyph to draw over a cell, or -1 to just use cell_text()
+static inline int cell_glyph(const VTermScreenCell* cell)
+{
+	uint32_t c = cell->chars[0];
+
+	if (c < 128 || c == (uint32_t)-1) return -1;
+
+	return glyph_index(c);
+}
+
+// draw the atlas glyphs in one run of a row, in the current colors
+static void draw_run_glyphs(const int* row_glyph, int row, int start_col, int length)
+{
+	for (int col = start_col; col < start_col + length; col++)
+	{
+		if (row_glyph[col] >= 0)
+		{
+			Rect r = cell_rect(col, row, con.win->portRect);
+			glyph_draw(row_glyph[col], &r);
+		}
+	}
 }
 
 void print_string(const char* c)
@@ -457,6 +481,7 @@ void draw_screen_color(Rect* r)
 	VTermPos pos = {.row = 0, .col = 0};
 
 	char row_text[con.size_x];
+	int row_glyph[con.size_x];
 	Rect run_rect;
 	short vertical_offset = (short)(r->top + con.cell_height - font_offset + 2);
 	short run_start_col, run_length;
@@ -487,7 +512,8 @@ void draw_screen_color(Rect* r)
 		{
 			ok = vterm_screen_get_cell(con.vts, pos, &vtsc);
 
-			row_text[pos.col] = cell_text(&vtsc);
+			row_glyph[pos.col] = cell_glyph(&vtsc);
+			row_text[pos.col] = (row_glyph[pos.col] >= 0) ? ' ' : cell_text(&vtsc);
 			cell_colors(&vtsc, &next_fg, &next_bg);
 
 			next_face = normal;
@@ -514,6 +540,7 @@ void draw_screen_color(Rect* r)
 				MoveTo(run_rect.left, vertical_offset);
 				TextFace(run_face);
 				DrawText(row_text, run_start_col, run_length);
+				draw_run_glyphs(row_glyph, pos.row, run_start_col, run_length);
 
 				// then reset everything to start a new run
 				run_inverted = vtsc.attrs.reverse ^ (i < select_end && i >= select_start);
@@ -547,6 +574,7 @@ void draw_screen_color(Rect* r)
 				MoveTo(run_rect.left, vertical_offset);
 				TextFace(run_face);
 				DrawText(row_text, run_start_col, run_length);
+				draw_run_glyphs(row_glyph, pos.row, run_start_col, run_length);
 			}
 			else
 			{
@@ -631,6 +659,7 @@ void draw_screen_fast(Rect* r)
 
 	char row_text[con.size_x];
 	char row_invert[con.size_x];
+	int row_glyph[con.size_x];
 	Rect cr;
 
 	VTermScreenCell here = {0};
@@ -645,7 +674,8 @@ void draw_screen_fast(Rect* r)
 		{
 			int ret = vterm_screen_get_cell(con.vts, pos, &here);
 
-			row_text[pos.col] = cell_text(&here);
+			row_glyph[pos.col] = cell_glyph(&here);
+			row_text[pos.col] = (row_glyph[pos.col] >= 0) ? ' ' : cell_text(&here);
 
 			bool invert = here.attrs.reverse ^ (i < select_end && i >= select_start);
 			row_invert[pos.col] = invert;
@@ -655,6 +685,7 @@ void draw_screen_fast(Rect* r)
 
 		MoveTo(r->left + 2, vertical_offset);
 		DrawText(row_text, 0, con.size_x);
+		draw_run_glyphs(row_glyph, pos.row, 0, con.size_x);
 
 		for (int i = 0; i < con.size_x; i++)
 		{
@@ -790,9 +821,10 @@ void print_display_info(void)
 		depth = (**(**GetMainDevice()).gdPMap).pixelSize;
 	}
 
-	printf_i("display: screen %dx%d %d-bit, cell %dx%d (Monaco %d), scripts:",
+	printf_i("display: screen %dx%d %d-bit, cell %dx%d (Monaco %d), glyphs %d, scripts:",
 		screen.right - screen.left, screen.bottom - screen.top, depth,
-		(int)con.cell_width, (int)con.cell_height, prefs.font_size);
+		(int)con.cell_width, (int)con.cell_height, prefs.font_size,
+		glyphs_count());
 
 	int cjk = 0;
 	if (GetScriptVariable(smJapanese, smScriptEnabled)) { printf_i(" JP"); cjk = 1; }
@@ -912,6 +944,8 @@ void font_size_change()
 
 	con.cell_width = CharWidth(' ');
 
+	glyphs_load(con.cell_width, con.cell_height);
+
 	TextFont(save_font);
 	TextSize(save_font_size);
 	TextFace(save_font_face);
@@ -985,6 +1019,8 @@ void console_setup(void)
 	con.cell_height = (short)(fi.ascent + fi.descent + fi.leading + 1);
 	font_offset = fi.descent;
 	con.cell_width = CharWidth(' ');
+
+	glyphs_load(con.cell_width, con.cell_height);
 
 	TextFont(save_font);
 	TextSize(save_font_size);

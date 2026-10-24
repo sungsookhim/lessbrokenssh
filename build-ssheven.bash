@@ -7,6 +7,8 @@ set -e
 #   68020 68030 68040   68k builds tuned for that CPU (all soft-float)
 #   601 g3              PowerPC builds tuned for the 601 or the 750 (G3)
 #   all                 everything above (the default)
+#   glyphs              regenerate procedural glyphs (keeping hand-edited ones),
+#                       pack them, and render previews into build-glyphs/
 #
 # Each target builds in build-<target>/ and copies its .dsk (HFS disk image)
 # and .bin (MacBinary) into dist/.
@@ -30,6 +32,11 @@ TOOLCHAIN_PPC=$RETRO68_PATH/toolchain/powerpc-apple-macos/cmake/retroppc.toolcha
 
 mkdir -p dist
 
+# glyphs/ -> glyphs.r, so hand edits to glyphs are always in the build
+if command -v python3 >/dev/null; then
+  python3 tools/glyphs/pack.py
+fi
+
 # build_cpu <target> <toolchain file> <gcc -mcpu value>
 build_cpu() {
   echo "building $1..."
@@ -47,12 +54,17 @@ for target in "${TARGETS[@]}"; do
     68020|68030|68040) build_cpu $target $TOOLCHAIN_68K $target ;;
     601)               build_cpu 601 $TOOLCHAIN_PPC 601 ;;
     g3)                build_cpu g3 $TOOLCHAIN_PPC 750 ;;
+    glyphs)
+      python3 tools/glyphs/procedural.py
+      python3 tools/glyphs/pack.py
+      python3 tools/glyphs/preview.py
+      ;;
     all)
       for cpu in 68020 68030 68040; do build_cpu $cpu $TOOLCHAIN_68K $cpu; done
       build_cpu 601 $TOOLCHAIN_PPC 601
       build_cpu g3 $TOOLCHAIN_PPC 750
       ;;
-    *) echo "unknown target: $target (try 68020 68030 68040 601 g3 all)"; exit 1 ;;
+    *) echo "unknown target: $target (try 68020 68030 68040 601 g3 all glyphs)"; exit 1 ;;
   esac
 done
 

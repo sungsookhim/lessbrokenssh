@@ -1,0 +1,13 @@
+# U+2503 BOX DRAWINGS HEAVY VERTICAL  source=procedural  edited=no
+..##..
+..##..
+..##..
+..##..
+..##..
+..##..
+..##..
+..##..
+..##..
+..##..
+..##..
+..##..

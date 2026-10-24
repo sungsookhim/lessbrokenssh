@@ -1,0 +1,13 @@
+# U+254F BOX DRAWINGS HEAVY DOUBLE DASH VERTICAL  source=procedural  edited=no
+..##..
+..##..
+..##..
+..##..
+......
+......
+..##..
+..##..
+..##..
+..##..
+......
+......

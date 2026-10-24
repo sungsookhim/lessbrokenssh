@@ -1,0 +1,13 @@
+# U+254A BOX DRAWINGS LEFT LIGHT AND RIGHT VERTICAL HEAVY  source=procedural  edited=no
+..##..
+..##..
+..##..
+..##..
+..##..
+######
+..####
+..##..
+..##..
+..##..
+..##..
+..##..

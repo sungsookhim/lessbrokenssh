@@ -1,0 +1,13 @@
+# U+256B BOX DRAWINGS VERTICAL DOUBLE AND HORIZONTAL SINGLE  source=procedural  edited=no
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+######
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..

@@ -1,0 +1,13 @@
+# U+252B BOX DRAWINGS HEAVY VERTICAL AND LEFT  source=procedural  edited=no
+..##..
+..##..
+..##..
+..##..
+..##..
+####..
+####..
+..##..
+..##..
+..##..
+..##..
+..##..

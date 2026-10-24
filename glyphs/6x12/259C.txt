@@ -1,0 +1,13 @@
+# U+259C QUADRANT UPPER LEFT AND UPPER RIGHT AND LOWER RIGHT  source=procedural  edited=no
+######
+######
+######
+######
+######
+######
+...###
+...###
+...###
+...###
+...###
+...###

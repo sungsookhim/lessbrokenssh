@@ -1,0 +1,13 @@
+# U+255F BOX DRAWINGS VERTICAL DOUBLE AND RIGHT SINGLE  source=procedural  edited=no
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#####
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..
+.#.#..
