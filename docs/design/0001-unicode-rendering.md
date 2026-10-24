@@ -19,10 +19,10 @@ The plan keeps a fast bitmap font for ordinary text and adds a **glyph atlas** f
 
 ## Background: what happens today
 
-Every cell is converted to one Mac Roman byte before drawing (`ssheven-console.c`, `draw_screen_color` and `draw_screen_fast`):
+Every cell is converted to one Mac Roman byte before drawing (`lessbrokenssh-console.c`, `draw_screen_color` and `draw_screen_fast`):
 
 - **ASCII** draws normally in Monaco at `prefs.font_size` (default 9).
-- **U+0080–U+FFFF** goes through `map_unicode()` (`ssheven-unicode.h`). That's a lookup table of nearest-ASCII lookalikes, such as `é` → `e`. Anything not in the table becomes the lozenge `◊`. The table has no entries for box drawing or block elements, so U+2500–U+259F all become `◊`.
+- **U+0080–U+FFFF** goes through `map_unicode()` (`lessbrokenssh-unicode.h`). That's a lookup table of nearest-ASCII lookalikes, such as `é` → `e`. Anything not in the table becomes the lozenge `◊`. The table has no entries for box drawing or block elements, so U+2500–U+259F all become `◊`.
 - **Above U+FFFF** (all emoji) always becomes `◊`.
 - **Wide characters:** libvterm gives the cell `width = 2` and returns `0xFFFFFFFF` in `chars[0]` for the right-half continuation cell. The drawing code treats that as one more character above U+FFFF, so a wide character draws as `◊◊`.
 - **Color:** only `fg.indexed.idx` and `bg.indexed.idx` are read, and they're mapped to the 8 classic QuickDraw colors. RGB colors (256-color and truecolor) are read through the wrong union member.
@@ -225,7 +225,7 @@ The tools are new and live in `tools/unicode/`. They run on the build host insid
 |---|---|---|
 | `export_glyphs.py` | BDF or TTF sources, `symbols.txt` (the code points wanted) | 1-bit glyph strips per cell size |
 | `export_emoji.py` | Twemoji PNGs, `emoji.txt` | 8-bit, 4-bit and mono variants + masks, quantized to the Mac system palettes |
-| `gen_table.py` | the above + `replacement.tsv` | `unicode-table.h` (the sorted range table) and `glyphs.r` (resource data included from `ssheven.r`) |
+| `gen_table.py` | the above + `replacement.tsv` | `unicode-table.h` (the sorted range table) and `glyphs.r` (resource data included from `lessbrokenssh.r`) |
 | `capture.py` | a session log recorded on the server with `script` | a histogram of the non-ASCII code points used, to grow `symbols.txt` and `emoji.txt` |
 
 Generated files are committed so a normal build doesn't need the source fonts. `./build.sh` gets a `glyphs` target to regenerate them.

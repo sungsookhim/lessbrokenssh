@@ -5,10 +5,10 @@
  * See LICENSE file for details
  */
 
-#include "ssheven.h"
-#include "ssheven-console.h"
-#include "ssheven-net.h"
-#include "ssheven-debug.h"
+#include "lessbrokenssh.h"
+#include "lessbrokenssh-console.h"
+#include "lessbrokenssh-net.h"
+#include "lessbrokenssh-debug.h"
 
 #include <Threads.h>
 #include <MacMemory.h>
@@ -97,7 +97,7 @@ int save_prefs(void)
 	short prefRefNum = 0;
 
 	OSType pref_type = 'pref';
-	OSType creator_type = 'SSH7';
+	OSType creator_type = 'LBSH';
 
 	// find the preferences folder on the system disk, create folder if needed
 	OSErr e = FindFolder(kOnSystemDisk, kPreferencesFolderType, kCreateFolder, &foundVRefNum, &foundDirID);
@@ -225,7 +225,7 @@ void load_prefs(void)
 
 	// make an FSSpec for the preferences file location and check if it exists
 	// TODO: if I just put PREFERENCES_FILENAME it doesn't work, wtf
-	e = FSMakeFSSpec(foundVRefNum, foundDirID, "\pssheven Preferences", &pref_file);
+	e = FSMakeFSSpec(foundVRefNum, foundDirID, "\plessbrokenssh Preferences", &pref_file);
 
 	if (e == fnfErr) // file not found, nothing to load
 	{
@@ -1390,15 +1390,7 @@ int main(int argc, char** argv)
 
 	console_setup();
 
-	char* logo = "   _____ _____ _    _\r\n"
-		"  / ____/ ____| |  | |\r\n"
-		" | (___| (___ | |__| | _____   _____ _ __\r\n"
-		"  \\___ \\\\___ \\|  __  |/ _ \\ \\ / / _ \\ '_ \\\r\n"
-		"  ____) |___) | |  | |  __/\\ V /  __/ | | |\r\n"
-		" |_____/_____/|_|  |_|\\___| \\_/ \\___|_| |_|\r\n";
-
-	printf_i(logo);
-	printf_i("by cy384, version " SSHEVEN_VERSION ", running in ");
+	printf_i("lessbrokenssh " SSHEVEN_VERSION ", based on ssheven by cy384, running in ");
 
 	#if defined(__ppc__)
 	printf_i("PPC mode.\r\n");

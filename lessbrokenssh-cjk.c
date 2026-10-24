@@ -1,8 +1,8 @@
 /*
- * lessbrokenssh CJK text, see ssheven-cjk.h
+ * lessbrokenssh CJK text, see lessbrokenssh-cjk.h
  */
 
-#include "ssheven-cjk.h"
+#include "lessbrokenssh-cjk.h"
 
 #include <Memory.h>
 #include <Resources.h>

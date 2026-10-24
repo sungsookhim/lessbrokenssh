@@ -1,5 +1,5 @@
-#include "ssheven-constants.r"
-#include "ssheven-icons.r"
+#include "lessbrokenssh-constants.r"
+#include "lessbrokenssh-icons.r"
 
 #include "Dialogs.r"
 #include "Processes.r"
@@ -26,13 +26,13 @@ resource 'DITL' (DITL_ABOUT, purgeable) {
 		Picture { enabled, PICT_ABOUT };
 
 		{ 34, 160, 54, 410},
-		StaticText { disabled, "ssheven" };
+		StaticText { disabled, "lessbrokenssh" };
 
 		{ 64, 160, 84, 410},
 		StaticText { disabled, SSHEVEN_LONG_VERSION };
 
 		{ 94, 160, 114, 410},
-		StaticText { disabled, "https://github.com/cy384/ssheven" };
+		StaticText { disabled, "https://github.com/sungsookhim/lessbrokenssh" };
 	}
 };
 
@@ -159,7 +159,7 @@ resource 'DITL' (DITL_CPU_BAD) {
 		Button { enabled, "OK" };
 
 		{ 10, 70, 30, 340 },
-		StaticText { enabled, "SSHeven requires a 68020 or later!" };
+		StaticText { enabled, "lessbrokenssh requires a 68020 or later!" };
 	}
 };
 
@@ -411,8 +411,8 @@ resource 'vers' (2, purgeable) {
 };
 
 /* signature resource */
-type 'SSH7' as 'STR ';
-resource 'SSH7' (0, purgeable) {
+type 'LBSH' as 'STR ';
+resource 'LBSH' (0, purgeable) {
 	SSHEVEN_DESCRIPTION
 };
 
@@ -429,7 +429,7 @@ resource 'FREF' (SSHEVEN_APPLICATION_ICON, purgeable) {
 // see TN1134
 
 resource 'BNDL' (128, purgeable) {
-	'SSH7', 0,
+	'LBSH', 0,
 	{
 		'ICN#', {0, SSHEVEN_APPLICATION_ICON, 1, SSHEVEN_FILE_ICON},
 		'FREF', {0, SSHEVEN_APPLICATION_ICON, 1, SSHEVEN_FILE_ICON}
@@ -446,7 +446,7 @@ resource 'MENU' (MENU_APPLE) {
 	allEnabled, enabled;
 	apple;
 	{
-		"About ssheven...", noIcon, noKey, noMark, plain;
+		"About lessbrokenssh...", noIcon, noKey, noMark, plain;
 		"-", noIcon, noKey, noMark, plain;
 	}
 };

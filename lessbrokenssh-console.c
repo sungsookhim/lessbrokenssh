@@ -5,14 +5,14 @@
  * See LICENSE file for details
  */
 
-#include "ssheven.h"
-#include "ssheven-console.h"
-#include "ssheven-net.h"
-#include "ssheven-unicode.h"
-#include "ssheven-glyph.h"
-#include "ssheven-macroman.h"
-#include "ssheven-cjk.h"
-#include "ssheven-scrollback.h"
+#include "lessbrokenssh.h"
+#include "lessbrokenssh-console.h"
+#include "lessbrokenssh-net.h"
+#include "lessbrokenssh-unicode.h"
+#include "lessbrokenssh-glyph.h"
+#include "lessbrokenssh-macroman.h"
+#include "lessbrokenssh-cjk.h"
+#include "lessbrokenssh-scrollback.h"
 
 #include <string.h>
 
@@ -1393,7 +1393,7 @@ void console_setup(void)
 	initial_window_bounds.bottom = (short)(initial_window_bounds.top + con.cell_height * con.size_y + 4);
 	initial_window_bounds.right = (short)(initial_window_bounds.left + con.cell_width * con.size_x + 4 + SCROLL_BAR_WIDTH);
 
-	ConstStr255Param title = "\pssheven " SSHEVEN_VERSION;
+	ConstStr255Param title = "\plessbrokenssh " SSHEVEN_VERSION;
 
 	WindowPtr win;
 	if (color_qd)

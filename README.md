@@ -1,6 +1,6 @@
 lessbrokenssh
 -------------
-A hobby fork of [cy384/ssheven](https://github.com/cy384/ssheven).
+A hobby fork of [cy384/ssheven](https://github.com/cy384/ssheven), renamed so the two can live side by side: the app, its source files and its builds are called lessbrokenssh, and it keeps its own preferences and known-hosts files (`lessbrokenssh Preferences`, `lessbrokenssh known_hosts`) and creator code (`LBSH`). It's still under ssheven's BSD 2-clause license, with cy384's copyright; see `LICENSE`.
 
 The goal is to SSH from my own old Macs into an EC2 instance and run the Claude CLI without the screen breaking apart. That means getting box drawing, Unicode and color right in a modern full-screen terminal app.
 
@@ -53,7 +53,7 @@ Known gaps:
 - **CJK needs the system's language kits.** Korean and Japanese draw with the Mac's own fonts, so a Mac without them (like an English System 7.6) shows `◊`. Hangul syllables outside the 2,350 in KS X 1001 also show `◊`, even with the Korean kit.
 - **Old Korean text files** are usually EUC-KR, not UTF-8, so `cat` shows `◊`. Convert them on the server: `iconv -f cp949 -t utf-8 file`.
 - **Truecolor:** the app asks the server for `COLORTERM=truecolor`, but sshd only passes it on with `AcceptEnv COLORTERM`. Otherwise add `export COLORTERM=truecolor` to your shell profile on the server.
-- **Scrollback** is 1,000 lines (`SCROLLBACK_LINES` in `ssheven-scrollback.h`); much more needs a bigger memory size in Get Info.
+- **Scrollback** is 1,000 lines (`SCROLLBACK_LINES` in `lessbrokenssh-scrollback.h`); much more needs a bigger memory size in Get Info.
 - **btop is slow on the LC 475.** Its refreshes carry tens of KB of color codes, and decrypting and parsing those keeps a 25 MHz 68LC040 busy. It helps to set `update_ms` to 4000 or more, `truecolor = False` and a flat theme like `TTY` in btop's options. top and htop run fine.
 
 To do, or ideas to keep in mind:
@@ -81,7 +81,7 @@ Needs podman (or docker, with `ENGINE=docker`). The first run builds a container
 ./build.sh glyphs        # regenerate glyphs and previews after editing (see tools/glyphs/)
 ```
 
-Each target produces `dist/ssheven-<cpu>.dsk` (HFS disk image) and `dist/ssheven-<cpu>.bin` (MacBinary). All 68k builds are soft-float, so they run on FPU-less machines like the LC II and LC 475.
+Each target produces `dist/lessbrokenssh-<cpu>.dsk` (HFS disk image) and `dist/lessbrokenssh-<cpu>.bin` (MacBinary). All 68k builds are soft-float, so they run on FPU-less machines like the LC II and LC 475.
 
 Development happens on the `work` branch. `master` stays identical to upstream.
 

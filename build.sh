@@ -36,4 +36,4 @@ if [[ $1 == shell ]]; then
   exec "${RUN[@]}" $IMAGE bash
 fi
 
-exec "${RUN[@]}" $IMAGE ./build-ssheven.bash "$@"
+exec "${RUN[@]}" $IMAGE ./build-lessbrokenssh.bash "$@"

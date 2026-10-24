@@ -7,7 +7,7 @@ Make the bitmaps that lessbrokenssh draws for characters the Mac's font doesn't 
 glyphs/6x12/2500.txt      one text-art file per glyph per cell size (the source of truth)
         │  tools/glyphs/pack.py        runs on every ./build.sh
         ▼
-glyphs.r                  'GLYF' resource, included from ssheven.r (generated, committed)
+glyphs.r                  'GLYF' and 'EMOJ' resources, built with the app (generated, committed)
 ```
 
 ### Making and tuning glyphs

@@ -1,8 +1,8 @@
 /*
- * lessbrokenssh glyph atlas, see ssheven-glyph.h
+ * lessbrokenssh glyph atlas, see lessbrokenssh-glyph.h
  */
 
-#include "ssheven-glyph.h"
+#include "lessbrokenssh-glyph.h"
 
 #include <Memory.h>
 #include <Resources.h>

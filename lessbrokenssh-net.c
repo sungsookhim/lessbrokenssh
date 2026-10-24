@@ -5,10 +5,10 @@
  * See LICENSE file for details
  */
 
-#include "ssheven.h"
-#include "ssheven-net.h"
-#include "ssheven-console.h"
-#include "ssheven-debug.h"
+#include "lessbrokenssh.h"
+#include "lessbrokenssh-net.h"
+#include "lessbrokenssh-console.h"
+#include "lessbrokenssh-debug.h"
 
 #include <errno.h>
 #include <Script.h>
@@ -239,7 +239,7 @@ char* known_hosts_full_path(int* found)
 	*found = 0;
 
 	OSType pref_type = 'pref';
-	OSType creator_type = 'SSH7';
+	OSType creator_type = 'LBSH';
 
 	// find the preferences folder on the system disk, create folder if needed
 	OSErr e = FindFolder(kOnSystemDisk, kPreferencesFolderType, kCreateFolder, &foundVRefNum, &foundDirID);
@@ -248,7 +248,7 @@ char* known_hosts_full_path(int* found)
 	// make an FSSpec for the new file we want to make
 	if (ok)
 	{
-		e = FSMakeFSSpec(foundVRefNum, foundDirID, "\pknown_hosts", &known_hosts_file);
+		e = FSMakeFSSpec(foundVRefNum, foundDirID, "\plessbrokenssh known_hosts", &known_hosts_file);
 
 		// if the file exists, we found it else make an empty one
 		if (e == noErr) *found = 1;

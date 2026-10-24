@@ -17,7 +17,7 @@
 #include <vterm.h>
 #include <vterm_keycodes.h>
 
-#include "ssheven-constants.r"
+#include "lessbrokenssh-constants.r"
 
 // sinful globals
 struct ssheven_console

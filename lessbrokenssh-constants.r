@@ -4,11 +4,12 @@
 #define __SSHEVEN_CONSTANTS_R__
 
 /* so many versions */
-#define SSHEVEN_VERSION             "0.9.0"
-#define SSHEVEN_LONG_VERSION        "0.9.0 prerelease, by cy384"
-#define SSHEVEN_DESCRIPTION         "ssheven 0.9.0 by cy384"
+/* lessbrokenssh has its own versions, starting over from ssheven 0.9.0 */
+#define SSHEVEN_VERSION             "0.1.0"
+#define SSHEVEN_LONG_VERSION        "0.1.0, based on ssheven 0.9.0 by cy384"
+#define SSHEVEN_DESCRIPTION         "lessbrokenssh 0.1.0, based on ssheven by cy384"
 #define SSHEVEN_VERSION_MAJOR       0x00
-#define SSHEVEN_VERSION_MINOR       0x90
+#define SSHEVEN_VERSION_MINOR       0x10
 #define SSHEVEN_VERSION_PRERELEASE  0x01
 
 /* options: development, alpha, beta, release */
@@ -28,7 +29,7 @@
 #define SSHEVEN_DEFAULT_TERM_STRING "xterm-16color"
 
 /* name for the preferences file (pascal string) */
-#define PREFERENCES_FILENAME "\pssheven Preferences"
+#define PREFERENCES_FILENAME "\plessbrokenssh Preferences"
 
 /* application icon set */
 #define SSHEVEN_APPLICATION_ICON 128

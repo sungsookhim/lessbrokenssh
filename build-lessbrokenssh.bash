@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# usage: build-ssheven.bash [target...]
+# usage: build-lessbrokenssh.bash [target...]
 #
 # targets:
 #   68020 68030 68040   68k builds tuned for that CPU (all soft-float)
@@ -42,8 +42,8 @@ build_cpu() {
   echo "building $1..."
   cmake -S . -B build-$1 -DCMAKE_TOOLCHAIN_FILE=$2 -DSSHEVEN_CPU=$3
   cmake --build build-$1 $BUILD_PARALLEL
-  cp build-$1/ssheven.dsk dist/ssheven-$1.dsk
-  cp build-$1/ssheven.bin dist/ssheven-$1.bin
+  cp build-$1/lessbrokenssh.dsk dist/lessbrokenssh-$1.dsk
+  cp build-$1/lessbrokenssh.bin dist/lessbrokenssh-$1.bin
 }
 
 TARGETS=("$@")

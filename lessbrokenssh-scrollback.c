@@ -1,9 +1,9 @@
 /*
- * lessbrokenssh scrollback, see ssheven-scrollback.h
+ * lessbrokenssh scrollback, see lessbrokenssh-scrollback.h
  */
 
-#include "ssheven-scrollback.h"
-#include "ssheven-cjk.h"
+#include "lessbrokenssh-scrollback.h"
+#include "lessbrokenssh-cjk.h"
 
 #include <stdlib.h>
 #include <string.h>
