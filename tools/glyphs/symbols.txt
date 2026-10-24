@@ -1,0 +1,74 @@
+# Symbols to export from fonts with export_font.py, one per line: the
+# character, then an optional comment. Characters Monaco already has (Mac
+# Roman, like · … • ‹ › – —) don't belong here; they draw as text.
+#
+# Grow this list with capture.py, which reports which characters a real
+# session used that have no glyph yet.
+
+# Claude CLI
+⏺	tool call / message bullet
+⎿	tool result connector
+✻	spinner
+✢	spinner
+✳	spinner
+✶	spinner
+✽	spinner
+❯	prompt
+⏵	mode indicator (accept edits)
+⏸	plan mode
+⧉	selection / IDE
+✓	done
+✔	done
+✗	failed
+✘	failed
+☐	todo
+☒	todo done
+◯	empty circle
+●	filled circle
+○	circle
+◉	selected
+◆	diamond
+◇	diamond outline
+▶	play
+▸	small right triangle
+►	pointer
+◀	left triangle
+▲	up triangle
+▼	down triangle
+★	star
+☆	star outline
+⚠	warning
+✎	edit
+⎯	horizontal line extension
+
+# arrows
+←
+↑
+→
+↓
+↔
+↕
+↵	return
+⏎	return
+➜	shell prompt arrow
+⇡	git ahead
+⇣	git behind
+⇧	shift
+⌃	control
+⌥	option
+⌘	command
+
+# geometric shapes and bullets (btop, htop, listings)
+■
+□
+▪
+▫
+⬤
+∙
+⋯
+
+# math and misc the base font lacks
+×	multiplication (Mac Roman has none; DejaVu's is clearer than x)
+∴
+≡
+⁝

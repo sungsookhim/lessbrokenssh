@@ -10,6 +10,7 @@
 #include "ssheven-net.h"
 #include "ssheven-unicode.h"
 #include "ssheven-glyph.h"
+#include "ssheven-macroman.h"
 
 #include <string.h>
 
@@ -83,7 +84,11 @@ static inline char cell_text(const VTermScreenCell* cell)
 
 	if (c < 128) return (char)c;
 
-	// normalize some unicode
+	// characters Monaco has itself
+	char mac = unicode_to_mac_roman(c);
+	if (mac) return mac;
+
+	// otherwise the nearest ASCII lookalike, if any
 	if (c <= 0xFFFF) return map_unicode(c);
 
 	return MAC_ROMAN_LOZENGE;

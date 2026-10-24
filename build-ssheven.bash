@@ -56,6 +56,7 @@ for target in "${TARGETS[@]}"; do
     g3)                build_cpu g3 $TOOLCHAIN_PPC 750 ;;
     glyphs)
       python3 tools/glyphs/procedural.py
+      python3 tools/glyphs/export_font.py
       python3 tools/glyphs/pack.py
       python3 tools/glyphs/preview.py
       ;;

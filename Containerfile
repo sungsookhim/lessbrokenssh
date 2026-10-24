@@ -23,7 +23,9 @@ RUN curl -fsSL "$INTERFACESFILE" -o /MPW-GM.img.bin \
 ENV INTERFACES=
 
 # for the glyph tools in tools/glyphs
-RUN apt-get update && apt-get install -y --no-install-recommends python3-pil \
+# (fonts: symbol sources for tools/glyphs/export_font.py, DejaVu and Noto are freely licensed)
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3-pil python3-fonttools \
+        fonts-dejavu-core fonts-noto-core \
     && rm -rf /var/lib/apt/lists/*
 
 ENV RETRO68_PATH=/Retro68-build
