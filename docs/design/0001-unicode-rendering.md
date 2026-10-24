@@ -1,7 +1,7 @@
 0001: Unicode rendering
 =======================
 
-- **Status:** draft
+- **Status:** accepted, in progress. See the [implementation plan](0001-plan.md), which changes one decision: box, block and Braille glyphs are made on the build host and hand-tuned, not drawn by code on the Mac.
 - **Date:** 2026-10-23
 - **Scope:** first feature update for lessbrokenssh
 

@@ -6,4 +6,4 @@ Each doc has a status: draft, accepted, implemented, or dropped.
 
 | # | Doc | Status |
 |---|---|---|
-| 0001 | [Unicode rendering](0001-unicode-rendering.md) | draft |
+| 0001 | [Unicode rendering](0001-unicode-rendering.md), [implementation plan](0001-plan.md) | accepted, in progress |
