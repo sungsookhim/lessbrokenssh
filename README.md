@@ -27,7 +27,7 @@ What works so far, compared with ssheven 0.9.0:
 | Box drawing, blocks, shades, Braille, sextants, Powerline | `◊` | real glyphs (500+, 6×12) |
 | Symbols (`⏺ ⎿ ✻ ❯ ✓ ☐ ↑ ⌘`…) | `◊` or `b` | hand-drawn glyphs |
 | Latin-1 and Mac Roman (`é ß © ° · … • – —`) | ASCII lookalikes | the real characters |
-| Emoji | `◊` | 256 color emoji (8-bit, 4-bit and dithered black-and-white versions) |
+| Emoji | `◊` | only a selected 256 of Unicode's emoji, in color (8-bit, 4-bit and dithered black-and-white versions); the rest still show as `◊` |
 | Japanese, Korean, Chinese | `◊` | the system's own fonts, when those scripts are installed |
 | Wide characters and emoji | line shifts by a column | correct widths (Unicode 16, emoji with VS16) |
 | Colors | 8 colors, `TERM=xterm-16color` | 256-color and truecolor in real color on 4-bit and deeper screens, `TERM=xterm-256color` |
