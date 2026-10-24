@@ -30,8 +30,23 @@ What works so far, compared with ssheven 0.9.0:
 | Wide characters and emoji | line shifts by a column | correct widths (Unicode 16, emoji with VS16) |
 | Colors | 8 colors, `TERM=xterm-16color` | 256-color and truecolor in real color on 4-bit and deeper screens, `TERM=xterm-256color` |
 | Scrollback | none | 1,000 lines with a scroll bar and Shift-Page Up/Down; full-screen programs use the alternate screen |
+| Keys and mouse | Shift-Tab sends Tab; clicks only reach programs in the basic mouse mode | Shift-Tab sends back-tab; clicks reach programs in any mouse mode (Shift-click selects text) |
+| Responsiveness | redraws the whole screen several times a second and sleeps ~130 ms between looks at the network | redraws only changed rows, and checks for incoming data every tick while connected |
 
 It also fixes a bug in upstream's unreleased code, where the port typed in the connect dialog was dropped and connecting failed.
+
+Keys worth knowing:
+
+| Keys | Does |
+|---|---|
+| Shift-Page Up / Shift-Page Down, or the scroll bar | scroll lessbrokenssh's history |
+| Page Up / Page Down | go to the program |
+| Option-Return | Meta-Return; a new line in the Claude CLI's input instead of sending |
+| Shift-Tab | back-tab; cycles the Claude CLI's modes |
+| Esc | Escape; interrupts the Claude CLI |
+| Shift-click | selects text even when the program uses the mouse |
+
+In the Claude CLI, Ctrl-O opens its own view for reading back through the output.
 
 Known gaps:
 
@@ -39,6 +54,7 @@ Known gaps:
 - **Old Korean text files** are usually EUC-KR, not UTF-8, so `cat` shows `◊`. Convert them on the server: `iconv -f cp949 -t utf-8 file`.
 - **Truecolor:** the app asks the server for `COLORTERM=truecolor`, but sshd only passes it on with `AcceptEnv COLORTERM`. Otherwise add `export COLORTERM=truecolor` to your shell profile on the server.
 - **Scrollback** is 1,000 lines (`SCROLLBACK_LINES` in `ssheven-scrollback.h`); much more needs a bigger memory size in Get Info.
+- **btop is slow on the LC 475.** Its refreshes carry tens of KB of color codes, and decrypting and parsing those keeps a 25 MHz 68LC040 busy. It helps to set `update_ms` to 4000 or more, `truecolor = False` and a flat theme like `TTY` in btop's options. top and htop run fine.
 
 To do, or ideas to keep in mind:
 
@@ -50,7 +66,7 @@ To do, or ideas to keep in mind:
 - **Mouse dragging** for programs that track it (only press and release are sent now).
 - **Measure the CPU-tuned builds** against the generic `68020` and `601` ones.
 - **Ed25519 keys**, which this libssh2 build has turned off (RSA and ECDSA keys work).
-- **Report the port bug upstream** to cy384/ssheven, and **tag a release** with the `.bin` files.
+- **Tag a release** with the `.bin` files. The two upstream bugs fixed here (the dropped port, `88a7ad8`, and `TERM` not being set, `8fe357b`) can go to cy384/ssheven if they're ever wanted.
 
 The design and plan are in [docs/design/](docs/design/README.md). The glyph and emoji tools are described in [tools/glyphs/README.md](tools/glyphs/README.md). Glyphs are plain text files in `glyphs/6x12/`, and emoji are PNGs in `glyphs/emoji/12x12/`, so both can be edited by hand.
 
