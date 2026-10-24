@@ -194,12 +194,28 @@ static inline int cell_glyph(const VTermScreenCell* cell)
 	return glyph_index(c);
 }
 
+// decomposed Hangul (NFD, common in file names made on macOS) arrives as a
+// leading consonant with the vowel and final consonant as combining characters
+// in the same cell; put them back together into the syllable, Unicode's way
+static uint32_t compose_hangul(const VTermScreenCell* cell)
+{
+	uint32_t l = cell->chars[0];
+	uint32_t v = cell->chars[1];
+
+	if (l < 0x1100 || l > 0x1112 || v < 0x1161 || v > 0x1175) return l;
+
+	uint32_t t = cell->chars[2];
+	uint32_t t_index = (t >= 0x11A8 && t <= 0x11C2) ? t - 0x11A7 : 0;
+
+	return 0xAC00 + ((l - 0x1100) * 21 + (v - 0x1161)) * 28 + t_index;
+}
+
 // a two-cell character to draw with a CJK script font, or -1
 static inline int32_t cell_cjk(const VTermScreenCell* cell)
 {
 	if (cell->width != 2) return -1;
 
-	return cjk_lookup(cell->chars[0]);
+	return cjk_lookup(compose_hangul(cell));
 }
 
 // draw the atlas glyphs and CJK characters in one run of a row, in the current colors

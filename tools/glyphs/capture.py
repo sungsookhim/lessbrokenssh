@@ -12,6 +12,9 @@ copy the logs here, and run
 
 Each character is reported as one of
     glyph      there's a glyph for it (in glyphs/6x12)
+    cjk-jp     drawn with the Japanese script font, if installed
+    cjk-kr     drawn with the Korean script font, if installed
+    jamo       part of decomposed Hangul; drawn as the composed syllable
     text       Monaco has it (Mac Roman)
     MISSING    neither; it draws as a lozenge. Add it to symbols.txt.
 
@@ -45,6 +48,14 @@ def main():
     def status(ch):
         if ord(ch) in glyphs:
             return "glyph"
+        if 0x1100 <= ord(ch) <= 0x11FF:
+            return "jamo"  # decomposed Hangul; the app composes it into a syllable
+        for tag, codec in (("cjk-jp", "shift_jis"), ("cjk-kr", "euc_kr")):
+            try:
+                if len(ch.encode(codec)) == 2 and not (tag == "cjk-jp" and 0xAC00 <= ord(ch) <= 0xD7A3):
+                    return tag
+            except UnicodeEncodeError:
+                pass
         try:
             ch.encode("mac_roman")
             return "text"
