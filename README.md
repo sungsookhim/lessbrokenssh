@@ -14,6 +14,34 @@ Machines I want it to run on:
 
 I'm also checking whether builds tuned for one CPU are actually faster than the generic `68020` and `601` builds, or whether they make no real difference.
 
+### status
+
+Tested on the iMac G3 (Mac OS 9, 800×600, 32-bit color) against an EC2 host: **the Claude CLI and btop draw correctly**, with their frames, logo, graphs, symbols and colors. The LC 475 and LC II haven't been tried yet.
+
+What works so far, compared with ssheven 0.9.0:
+
+| | ssheven 0.9.0 | lessbrokenssh |
+|---|---|---|
+| Box drawing, blocks, shades, Braille, sextants, Powerline | `◊` | real glyphs (500+, 6×12) |
+| Symbols (`⏺ ⎿ ✻ ❯ ✓ ☐ ↑ ⌘`…) | `◊` or `b` | hand-drawn glyphs |
+| Latin-1 and Mac Roman (`é ß © ° · … • – —`) | ASCII lookalikes | the real characters |
+| Emoji | `◊` | 256 color emoji (8-bit, 4-bit and dithered black-and-white versions) |
+| Japanese, Korean, Chinese | `◊` | the system's own fonts, when those scripts are installed |
+| Wide characters and emoji | line shifts by a column | correct widths (Unicode 16, emoji with VS16) |
+| Colors | 8 colors, `TERM=xterm-16color` | 256-color and truecolor in real color on 4-bit and deeper screens, `TERM=xterm-256color` |
+
+It also fixes a bug in upstream's unreleased code, where the port typed in the connect dialog was dropped and connecting failed.
+
+Known gaps:
+
+- **Rare Korean syllables:** some Hangul shows `◊`, probably syllables outside the 2,350 in KS X 1001, which the classic Korean font can't reach. Under investigation.
+- **Truecolor:** the app asks the server for `COLORTERM=truecolor`, but sshd only passes it on with `AcceptEnv COLORTERM`. Otherwise add `export COLORTERM=truecolor` to your shell profile on the server.
+- **Copy and paste** of text outside Mac Roman.
+- **800×600 font:** the iMac still uses Monaco 9 (6×12 cells). A bigger TrueType font with its own glyph set is planned.
+- **CPU builds:** not measured yet.
+
+The design and plan are in [docs/design/](docs/design/README.md). The glyph and emoji tools are described in [tools/glyphs/README.md](tools/glyphs/README.md). Glyphs are plain text files in `glyphs/6x12/`, and emoji are PNGs in `glyphs/emoji/12x12/`, so both can be edited by hand.
+
 ### building
 
 Needs podman (or docker, with `ENGINE=docker`). The first run builds a container with the [Retro68](https://github.com/autc04/Retro68/) toolchain and Apple's Universal Interfaces.
@@ -22,6 +50,7 @@ Needs podman (or docker, with `ENGINE=docker`). The first run builds a container
 ./build.sh               # all targets: 68020 68030 68040 601 g3
 ./build.sh 68030 g3      # just these
 ./build.sh shell         # shell inside the build container
+./build.sh glyphs        # regenerate glyphs and previews after editing (see tools/glyphs/)
 ```
 
 Each target produces `dist/ssheven-<cpu>.dsk` (HFS disk image) and `dist/ssheven-<cpu>.bin` (MacBinary). All 68k builds are soft-float, so they run on FPU-less machines like the LC II and LC 475.
