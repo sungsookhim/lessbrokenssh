@@ -6,4 +6,5 @@
 	url = https://github.com/cy384/opentransport-mbedtls.git
 [submodule "libvterm"]
 	path = libvterm
-	url = https://github.com/cy384/libvterm
+	url = https://github.com/sungsookhim/libvterm
+	branch = lessbrokenssh
