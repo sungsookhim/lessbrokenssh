@@ -197,6 +197,15 @@ int ssh_setup_terminal(void)
 {
 	int rc = 0;
 
+	// ask for truecolor: programs only send it when COLORTERM says so. We draw
+	// RGB colors and QuickDraw maps them to whatever the screen can show. The
+	// server only accepts this if its sshd_config has AcceptEnv COLORTERM, so a
+	// refusal is fine (and setting COLORTERM in the shell profile works too).
+	if (prefs.display_mode == COLOR)
+	{
+		libssh2_channel_setenv(ssh_con.channel, "COLORTERM", "truecolor");
+	}
+
 	SSH_CHECK(libssh2_channel_request_pty_ex(ssh_con.channel, prefs.terminal_string, (strlen(prefs.terminal_string)), NULL, 0, con.size_x, con.size_y, 0, 0));
 	SSH_CHECK(libssh2_channel_shell(ssh_con.channel));
 

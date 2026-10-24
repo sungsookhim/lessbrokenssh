@@ -2,7 +2,7 @@
 # Color test for lessbrokenssh: run it on the server (sh colors.sh).
 # Each section should look smooth and distinct on a 4-bit or deeper screen.
 
-echo "TERM=$TERM, tput colors: $(tput colors 2>/dev/null)"
+echo "TERM=$TERM, COLORTERM=${COLORTERM:-(not set)}, tput colors: $(tput colors 2>/dev/null)"
 
 echo
 echo "16 colors (normal, then bright):"
