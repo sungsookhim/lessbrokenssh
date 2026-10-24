@@ -3,3 +3,5 @@ build-m68k/
 build-ppc/
 build/
 .vscode/
+build-*/
+dist/

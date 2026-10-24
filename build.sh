@@ -3,7 +3,8 @@
 # Build lessbrokenssh for classic Mac OS inside the Retro68 container.
 #
 # usage:
-#   ./build.sh          build the fat binary (68k + PPC) into build-fat/
+#   ./build.sh [target...]   build into dist/; targets are 68020 68030 68040
+#                            601 g3 all (default: all)
 #   ./build.sh shell    open a shell in the build environment
 #   ./build.sh image    (re)build the container image only
 #
@@ -34,4 +35,4 @@ if [[ $1 == shell ]]; then
   exec "${RUN[@]}" $IMAGE bash
 fi
 
-exec "${RUN[@]}" $IMAGE ./build-ssheven.bash
+exec "${RUN[@]}" $IMAGE ./build-ssheven.bash "$@"

@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# usage: build-ssheven.bash [target...]
+#
+# targets:
+#   68020 68030 68040   68k builds tuned for that CPU (all soft-float)
+#   601 g3              PowerPC builds tuned for the 601 or the 750 (G3)
+#   all                 everything above (the default)
+#
+# Each target builds in build-<target>/ and copies its .dsk (HFS disk image)
+# and .bin (MacBinary) into dist/.
+
 # set RETRO68_PATH to the root of your Retro68 build folder, e.g. ~/src/Retro68-build/
 # (the build container from ./build.sh sets it for you)
 if [[ -z $RETRO68_PATH ]]; then
@@ -15,38 +25,35 @@ then
   BUILD_PARALLEL="--parallel $(nproc)"
 fi
 
-################################################################################
-echo "building PPC..."
+TOOLCHAIN_68K=$RETRO68_PATH/toolchain/m68k-apple-macos/cmake/retro68.toolchain.cmake
+TOOLCHAIN_PPC=$RETRO68_PATH/toolchain/powerpc-apple-macos/cmake/retroppc.toolchain.cmake
 
-rm -rf build-ppc
-mkdir build-ppc
+mkdir -p dist
 
-cmake -S . -B build-ppc -DCMAKE_TOOLCHAIN_FILE=$RETRO68_PATH/toolchain/powerpc-apple-macos/cmake/retroppc.toolchain.cmake
-cmake --build build-ppc $BUILD_PARALLEL
+# build_cpu <target> <toolchain file> <gcc -mcpu value>
+build_cpu() {
+  echo "building $1..."
+  cmake -S . -B build-$1 -DCMAKE_TOOLCHAIN_FILE=$2 -DSSHEVEN_CPU=$3
+  cmake --build build-$1 $BUILD_PARALLEL
+  cp build-$1/ssheven.dsk dist/ssheven-$1.dsk
+  cp build-$1/ssheven.bin dist/ssheven-$1.bin
+}
 
-################################################################################
-echo "building m68k..."
+TARGETS=("$@")
+[[ ${#TARGETS[@]} -eq 0 ]] && TARGETS=(all)
 
-rm -rf build-m68k
-mkdir build-m68k
+for target in "${TARGETS[@]}"; do
+  case $target in
+    68020|68030|68040) build_cpu $target $TOOLCHAIN_68K $target ;;
+    601)               build_cpu 601 $TOOLCHAIN_PPC 601 ;;
+    g3)                build_cpu g3 $TOOLCHAIN_PPC 750 ;;
+    all)
+      for cpu in 68020 68030 68040; do build_cpu $cpu $TOOLCHAIN_68K $cpu; done
+      build_cpu 601 $TOOLCHAIN_PPC 601
+      build_cpu g3 $TOOLCHAIN_PPC 750
+      ;;
+    *) echo "unknown target: $target (try 68020 68030 68040 601 g3 all)"; exit 1 ;;
+  esac
+done
 
-cmake -S . -B build-m68k -DCMAKE_TOOLCHAIN_FILE=$RETRO68_PATH/toolchain/m68k-apple-macos/cmake/retro68.toolchain.cmake
-cmake --build build-m68k $BUILD_PARALLEL
-
-################################################################################
-echo "Rez-ing it all together..."
-
-rm -rf build-fat
-mkdir build-fat
-
-$RETRO68_PATH/toolchain/bin/Rez \
-$RETRO68_PATH/toolchain/m68k-apple-macos/RIncludes/RetroPPCAPPL.r \
--I$RETRO68_PATH/toolchain/m68k-apple-macos/RIncludes \
--DCFRAG_NAME="\"ssheven\"" \
---copy build-m68k/ssheven.code.bin \
--o build-fat/ssheven-fat.bin \
---cc build-fat/ssheven-fat.dsk --cc build-fat/ssheven-fat.APPL --cc build-fat/%ssheven-fat.ad \
--t APPL -c SSH7 \
---data build-ppc/ssheven.pef build-ppc/ssheven.r.rsrc.bin
-
-echo "done."
+echo "done; results in dist/"
