@@ -299,11 +299,26 @@ int known_hosts(void)
 		printf_i("No known hosts file found.\r\n");
 	}
 
+	// the server's key type in known_hosts terms. It's part of the check, so a
+	// server's key of another type (an ed25519 key once that's supported,
+	// next to the ECDSA one saved earlier) counts as new, not as a mismatch
+	int known_key_type = LIBSSH2_KNOWNHOST_KEY_UNKNOWN;
+	switch (key_type)
+	{
+		case LIBSSH2_HOSTKEY_TYPE_RSA: known_key_type = LIBSSH2_KNOWNHOST_KEY_SSHRSA; break;
+		case LIBSSH2_HOSTKEY_TYPE_DSS: known_key_type = LIBSSH2_KNOWNHOST_KEY_SSHDSS; break;
+		case LIBSSH2_HOSTKEY_TYPE_ECDSA_256: known_key_type = LIBSSH2_KNOWNHOST_KEY_ECDSA_256; break;
+		case LIBSSH2_HOSTKEY_TYPE_ECDSA_384: known_key_type = LIBSSH2_KNOWNHOST_KEY_ECDSA_384; break;
+		case LIBSSH2_HOSTKEY_TYPE_ECDSA_521: known_key_type = LIBSSH2_KNOWNHOST_KEY_ECDSA_521; break;
+		case LIBSSH2_HOSTKEY_TYPE_ED25519: known_key_type = LIBSSH2_KNOWNHOST_KEY_ED25519; break;
+		default: break;
+	}
+
 	if (safe_to_connect)
 	{
 		// hostnames need to be either plain or of the format "[host]:port"
 		prefs.hostname[prefs.hostname[0]+1] = '\0';
-		int e = libssh2_knownhost_check(known_hosts, prefs.hostname+1, host_key, key_len, LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW, NULL);
+		int e = libssh2_knownhost_check(known_hosts, prefs.hostname+1, host_key, key_len, LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW | known_key_type, NULL);
 		prefs.hostname[prefs.hostname[0]+1] = ':';
 
 		switch (e)
@@ -371,36 +386,7 @@ int known_hosts(void)
 
 		printf_i("Saving host and key... ");
 
-		int save_type = 0;
-		save_type |= LIBSSH2_KNOWNHOST_TYPE_PLAIN;
-		save_type |= LIBSSH2_KNOWNHOST_KEYENC_RAW;
-
-		switch (key_type)
-		{
-			default:
-				__attribute__ ((fallthrough));
-			case LIBSSH2_HOSTKEY_TYPE_UNKNOWN:
-				save_type |= LIBSSH2_KNOWNHOST_KEY_UNKNOWN;
-				break;
-			case LIBSSH2_HOSTKEY_TYPE_RSA:
-				save_type |= LIBSSH2_KNOWNHOST_KEY_SSHRSA;
-				break;
-			case LIBSSH2_HOSTKEY_TYPE_DSS:
-				save_type |= LIBSSH2_KNOWNHOST_KEY_SSHDSS;
-				break;
-			case LIBSSH2_HOSTKEY_TYPE_ECDSA_256:
-				save_type |= LIBSSH2_KNOWNHOST_KEY_ECDSA_256;
-				break;
-			case LIBSSH2_HOSTKEY_TYPE_ECDSA_384:
-				save_type |= LIBSSH2_KNOWNHOST_KEY_ECDSA_384;
-				break;
-			case LIBSSH2_HOSTKEY_TYPE_ECDSA_521:
-				save_type |= LIBSSH2_KNOWNHOST_KEY_ECDSA_521;
-				break;
-			case LIBSSH2_HOSTKEY_TYPE_ED25519:
-				save_type |= LIBSSH2_KNOWNHOST_KEY_ED25519;
-				break;
-		}
+		int save_type = LIBSSH2_KNOWNHOST_TYPE_PLAIN | LIBSSH2_KNOWNHOST_KEYENC_RAW | known_key_type;
 
 		// hostnames need to be either plain or of the format "[host]:port"
 		prefs.hostname[prefs.hostname[0]+1] = '\0';
