@@ -37,9 +37,13 @@ What works so far, compared with ssheven 0.9.0:
 | Colors | 8 colors, `TERM=xterm-16color` | 256-color and truecolor in real color on 4-bit and deeper screens, `TERM=xterm-256color` |
 | Scrollback | none | 1,000 lines with a scroll bar and Shift-Page Up/Down; full-screen programs use the alternate screen |
 | Keys and mouse | Shift-Tab sends Tab; clicks only reach programs in the basic mouse mode | Shift-Tab sends back-tab; clicks reach programs in any mouse mode (Shift-click selects text) |
-| Responsiveness | redraws the whole screen several times a second and sleeps ~130 ms between looks at the network | redraws only changed rows, and checks for incoming data every tick while connected |
+| Responsiveness | redraws the whole screen several times a second and sleeps ~130 ms between looks at the network | redraws only changed rows, draws each row's box and Braille characters with one copy per color run, and checks for incoming data every tick while connected |
+| Keys | RSA and ECDSA, and only with key files that have Unix line endings | also Ed25519 (the `ssh-keygen` default), passphrase-protected or not; key files saved with SimpleText (Mac line endings) work too |
+| Key exchange | ECDH and Diffie-Hellman | also curve25519-sha256, preferred when the server offers it |
 
-It also fixes a bug in upstream's unreleased code, where the port typed in the connect dialog was dropped and connecting failed.
+It also fixes a bug in upstream's unreleased code, where the port typed in the connect dialog was dropped and connecting failed, and a hang or crash when the server closes the connection.
+
+Ed25519 and curve25519 use [Monocypher](https://monocypher.org) (CC0 or 2-clause BSD), since mbedTLS has no Ed25519. Known hosts are checked by key type, so the first connection after a server starts offering its Ed25519 host key asks to accept it, like a new host.
 
 Keys worth knowing:
 
@@ -68,10 +72,8 @@ To do, or ideas to keep in mind:
 - **Larger cells on 800×600** (8×16, so 16×16 for CJK): a TrueType base font and an 8×16 glyph and emoji set.
 - **Unicode copy and paste**, and typing in Korean or Japanese: text currently leaves the Mac as Mac Roman (or the script's own encoding), not UTF-8.
 - **Scrollback length** as a preference instead of a constant.
-- **Faster drawing on 68k:** draw each row's glyphs with one copy instead of one per cell, which matters most for btop's Braille graphs.
 - **Mouse dragging** for programs that track it (only press and release are sent now).
 - **Measure the CPU-tuned builds**: `68040` against `68020` on the LC 475, and `g3` against `601` on the G3. If tuning makes no real difference, ship one 68k build.
-- **Ed25519 keys**, which this libssh2 build has turned off (RSA and ECDSA keys work).
 - **Upstream fixes:** the two upstream bugs fixed here (the dropped port, `88a7ad8`, and `TERM` not being set, `8fe357b`) can go to cy384/ssheven if they're ever wanted.
 
 The design and plan are in [docs/design/](docs/design/README.md). The glyph and emoji tools are described in [tools/glyphs/README.md](tools/glyphs/README.md). The app icon and About picture are PNGs in `docs/lessbrokenssh-icons/`, turned into `lessbrokenssh-icons.r` by `tools/icons/make_icons.py` on every build. Glyphs are plain text files in `glyphs/6x12/`, and emoji are PNGs in `glyphs/emoji/12x12/`, so both can be edited by hand.
