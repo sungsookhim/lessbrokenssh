@@ -68,13 +68,28 @@ Known gaps:
 
 To do, or ideas to keep in mind:
 
+Next up, small fixes (a 0.2.1):
+
+- **Changing key files:** there's no way to pick other key files short of deleting their lines from the prefs file, and a mistyped passphrase silently forgets the saved paths. Add a "Choose Key Files…" menu item, prompts on the two file dialogs (public key first, then private), and show libssh2's own reason when a login fails (`libssh2_session_last_error`; "Callback returned error" means the private key couldn't be loaded).
+- **Harden `load_prefs()`:** `buffer[buffer_size] = 0` writes a byte past the 8 KB buffer when the file is that big, `FSRead` and `malloc` failures are ignored, font size and colors aren't range-checked, and an empty line (no username, say) stops `sscanf`, dropping the fields after it. Maybe upstream issue #31 (a crash at launch that deleting the prefs file fixes).
+- **Missing control keys:** Ctrl-Space and Ctrl-@ (NUL, emacs' set-mark) and Ctrl-? (DEL) aren't in `ascii_to_control_code`.
+
+Then 68k responsiveness:
+
+- **Less lag when output piles up:** quitting btop on the LC 475 took about 9 seconds, the time to work through what was already in flight. A smaller SSH channel window would make the server hold output back, so keys take effect sooner.
+- **Fastest cipher for 68k:** decrypting is now most of btop's cost on the LC 475. Time ChaCha20-Poly1305 against AES-CTR there, and have the 68k builds prefer the faster one.
+
+Later:
+
 - **Bundled CJK bitmaps** for Macs without the Korean or Japanese language kits (like an English System 7.6), and for the rare Hangul syllables outside KS X 1001. All 11,172 syllables plus kana and common kanji, exported like the emoji, would be about 250–400 KB. The catch: with 6×12 cells a CJK character only gets 12×12 px, which is the bare minimum. Complex Hangul (`읽 많 됐`) and dense kanji lose strokes, so this would be more worthwhile together with larger cells.
 - **Larger cells on 800×600** (8×16, so 16×16 for CJK): a TrueType base font and an 8×16 glyph and emoji set.
 - **Unicode copy and paste**, and typing in Korean or Japanese: text currently leaves the Mac as Mac Roman (or the script's own encoding), not UTF-8.
 - **Scrollback length** as a preference instead of a constant.
 - **Mouse dragging** for programs that track it (only press and release are sent now).
 - **Measure the CPU-tuned builds**: `68040` against `68020` on the LC 475, and `g3` against `601` on the G3. If tuning makes no real difference, ship one 68k build.
-- **Upstream fixes:** the two upstream bugs fixed here (the dropped port, `88a7ad8`, and `TERM` not being set, `8fe357b`) can go to cy384/ssheven if they're ever wanted.
+- **Try the `68020` build on a real 68020 or 68030 Mac** (the LC II); it's never been run on one.
+- **Upstream issues needing the hardware to reproduce:** crash with Open Transport 1.1.2 (#30), error 3 on an LC III (#28). Bigger asks there: font selection (#25), port forwarding (#10).
+- **Upstream fixes:** bugs fixed here that ssheven also has can go to cy384/ssheven if they're ever wanted: the dropped port (`88a7ad8`), `TERM` not being set (`8fe357b`), the hang when the server drops the connection (`ac233ba`), and key files with Mac line endings (`37cde08`).
 
 The design and plan are in [docs/design/](docs/design/README.md). The glyph and emoji tools are described in [tools/glyphs/README.md](tools/glyphs/README.md). The app icon and About picture are PNGs in `docs/lessbrokenssh-icons/`, turned into `lessbrokenssh-icons.r` by `tools/icons/make_icons.py` on every build. Glyphs are plain text files in `glyphs/6x12/`, and emoji are PNGs in `glyphs/emoji/12x12/`, so both can be edited by hand.
 
