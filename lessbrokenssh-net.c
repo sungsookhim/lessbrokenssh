@@ -11,6 +11,9 @@
 #include "lessbrokenssh-debug.h"
 
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <Files.h>
 #include <Script.h>
 #include <Threads.h>
 
@@ -537,6 +540,63 @@ int init_connection(char* hostname)
 	return 1;
 }
 
+// read a key file into memory with Unix line endings. Saving a key with
+// SimpleText (or copying it over as text) gives it Mac CR line endings,
+// which libssh2's and mbedTLS's key parsers don't accept, and the login
+// then fails as if the server had refused the key. Opens read-only, so a
+// locked file or one still open in SimpleText works too. Returns a
+// malloc'd, NUL-terminated buffer, or NULL if the file can't be read.
+static char* read_key_file(const char* path, size_t* length)
+{
+	Str255 pname;
+	size_t path_length = strlen(path);
+	short ref;
+	long size = 0;
+
+	if (path_length == 0 || path_length > 255) return NULL;
+	pname[0] = (unsigned char)path_length;
+	memcpy(pname + 1, path, path_length);
+
+	if (HOpenDF(0, 0, pname, fsRdPerm, &ref) != noErr) return NULL;
+
+	char* data = NULL;
+	if (GetEOF(ref, &size) == noErr && size > 0 && size < 65536)
+	{
+		data = malloc((size_t)size + 1);
+		if (data && FSRead(ref, &size, data) != noErr)
+		{
+			free(data);
+			data = NULL;
+		}
+	}
+	FSClose(ref);
+
+	if (data == NULL) return NULL;
+
+	// CR LF and lone CR to LF
+	size_t out = 0;
+	for (long in = 0; in < size; in++)
+	{
+		if (data[in] == '\r')
+		{
+			data[out++] = '\n';
+			if (in + 1 < size && data[in + 1] == '\n') in++;
+		}
+		else data[out++] = data[in];
+	}
+	data[out] = '\0';
+
+	*length = out;
+	return data;
+}
+
+static void free_key_file(char* data, size_t length)
+{
+	if (data == NULL) return;
+	memset(data, 0, length);
+	free(data);
+}
+
 void* read_thread(void* arg)
 {
 	int ok = 1;
@@ -579,12 +639,27 @@ void* read_thread(void* arg)
 		}
 		else
 		{
-			rc = libssh2_userauth_publickey_fromfile_ex(ssh_con.session,
-				prefs.username+1,
-				(unsigned int)(prefs.username[0]),
-				prefs.pubkey_path,
-				prefs.privkey_path,
-				prefs.password+1);
+			size_t pubkey_length = 0, privkey_length = 0;
+			char* pubkey = read_key_file(prefs.pubkey_path, &pubkey_length);
+			char* privkey = read_key_file(prefs.privkey_path, &privkey_length);
+
+			// without a public key file, libssh2 works it out from the private key
+			if (privkey == NULL || (pubkey == NULL && prefs.pubkey_path[0] != '\0'))
+			{
+				rc = LIBSSH2_ERROR_FILE;
+			}
+			else
+			{
+				rc = libssh2_userauth_publickey_frommemory(ssh_con.session,
+					prefs.username+1,
+					(size_t)(prefs.username[0]),
+					pubkey, pubkey_length,
+					privkey, privkey_length,
+					prefs.password+1);
+			}
+
+			free_key_file(pubkey, pubkey_length);
+			free_key_file(privkey, privkey_length);
 		}
 
 		if (rc == LIBSSH2_ERROR_NONE)
