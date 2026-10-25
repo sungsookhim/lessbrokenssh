@@ -1,6 +1,7 @@
 [submodule "opentransport-libssh2"]
 	path = opentransport-libssh2
-	url = https://github.com/cy384/opentransport-libssh2.git
+	url = https://github.com/sungsookhim/opentransport-libssh2
+	branch = lessbrokenssh
 [submodule "opentransport-mbedtls"]
 	path = opentransport-mbedtls
 	url = https://github.com/cy384/opentransport-mbedtls.git
