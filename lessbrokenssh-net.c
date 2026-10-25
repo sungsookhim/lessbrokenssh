@@ -33,7 +33,8 @@ void ssh_write(char* buf, size_t len)
 // read from the channel and print to console
 void ssh_read(void)
 {
-	size_t rc = libssh2_channel_read(ssh_con.channel, ssh_con.recv_buffer, SSHEVEN_BUFFER_SIZE);
+	// signed: errors are negative, and as a size_t they'd look like ~4 GB of data
+	ssize_t rc = libssh2_channel_read(ssh_con.channel, ssh_con.recv_buffer, SSHEVEN_BUFFER_SIZE);
 
 	if (rc == 0) return;
 

@@ -49,7 +49,10 @@ void generate_key_mapping(void)
 
 	for (uint16_t i = 0; i < 256; i++)
 	{
-		keycode_to_ascii[i] = KeyTranslate(kchr, i, 0) & 0xff;
+		// KeyTranslate keeps dead-key state through this pointer; passing NULL
+		// would make it read and write that state at address 0
+		UInt32 state = 0;
+		keycode_to_ascii[i] = KeyTranslate(kchr, i, &state) & 0xff;
 	}
 }
 
