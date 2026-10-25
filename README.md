@@ -43,7 +43,7 @@ What works so far, compared with ssheven 0.9.0:
 
 It also fixes a bug in upstream's unreleased code, where the port typed in the connect dialog was dropped and connecting failed, and a hang or crash when the server closes the connection.
 
-Ed25519 and curve25519 use [Monocypher](https://monocypher.org) (CC0 or 2-clause BSD), since mbedTLS has no Ed25519. Known hosts are checked by key type, so the first connection after a server starts offering its Ed25519 host key asks to accept it, like a new host.
+Ed25519 and curve25519 use [Monocypher](https://monocypher.org) (CC0 or 2-clause BSD), since mbedTLS has no Ed25519. Known hosts are checked by key type, so a server that now presents its Ed25519 host key (one without an ECDSA key) asks once to accept it, like a new host, instead of being refused as a mismatch.
 
 Keys worth knowing:
 

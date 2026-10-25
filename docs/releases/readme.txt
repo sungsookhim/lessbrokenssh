@@ -30,3 +30,4 @@ ssheven's, so both apps can be used side by side.
 
 More: https://github.com/sungsookhim/lessbrokenssh
 License: BSD 2-clause, Copyright cy384 (see the LICENSE file on GitHub)
+Ed25519 and curve25519: Monocypher (monocypher.org), CC0 or BSD 2-clause

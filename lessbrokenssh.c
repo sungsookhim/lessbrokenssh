@@ -268,8 +268,9 @@ void load_prefs(void)
 		return;
 	}
 
-	// only load a prefs file if the saved version number matches ours
-	if ((prefs.major_version == SSHEVEN_VERSION_MAJOR) && (prefs.minor_version == SSHEVEN_VERSION_MINOR))
+	// only load a prefs file from a version with the same format: ours, or
+	// any since lessbrokenssh 0.1 (minor 0x10), which it hasn't changed from
+	if ((prefs.major_version == SSHEVEN_VERSION_MAJOR) && (prefs.minor_version >= 0x10) && (prefs.minor_version <= SSHEVEN_VERSION_MINOR))
 	{
 		prefs.loaded_from_file = 1;
 		items_got = sscanf(buffer, "%d\n%d\n%d\n%d\n%d\n%d\n%d\n%255[^\n]\n%255[^\n]\n%255[^\n]\n%[^\n]\n%[^\n]",
@@ -287,11 +288,10 @@ void load_prefs(void)
 
 		set_terminal_string();
 	}
-	else
-	{
-		prefs.major_version = SSHEVEN_VERSION_MAJOR;
-		prefs.minor_version = SSHEVEN_VERSION_MINOR;
-	}
+
+	// saved again as this version
+	prefs.major_version = SSHEVEN_VERSION_MAJOR;
+	prefs.minor_version = SSHEVEN_VERSION_MINOR;
 
 	if (buffer) free(buffer);
 }
