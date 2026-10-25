@@ -70,7 +70,7 @@ To do, or ideas to keep in mind:
 - **Ed25519 keys**, which this libssh2 build has turned off (RSA and ECDSA keys work).
 - **Tag a release** with the `.bin` files. The two upstream bugs fixed here (the dropped port, `88a7ad8`, and `TERM` not being set, `8fe357b`) can go to cy384/ssheven if they're ever wanted.
 
-The design and plan are in [docs/design/](docs/design/README.md). The glyph and emoji tools are described in [tools/glyphs/README.md](tools/glyphs/README.md). Glyphs are plain text files in `glyphs/6x12/`, and emoji are PNGs in `glyphs/emoji/12x12/`, so both can be edited by hand.
+The design and plan are in [docs/design/](docs/design/README.md). The glyph and emoji tools are described in [tools/glyphs/README.md](tools/glyphs/README.md). The app icon and About picture are PNGs in `docs/lessbrokenssh-icons/`, turned into `lessbrokenssh-icons.r` by `tools/icons/make_icons.py` on every build. Glyphs are plain text files in `glyphs/6x12/`, and emoji are PNGs in `glyphs/emoji/12x12/`, so both can be edited by hand.
 
 ### building
 

@@ -37,6 +37,11 @@ if command -v python3 >/dev/null; then
   python3 tools/glyphs/pack.py
 fi
 
+# docs/lessbrokenssh-icons/*.png -> lessbrokenssh-icons.r
+if python3 -c 'import PIL' 2>/dev/null; then
+  python3 tools/icons/make_icons.py
+fi
+
 # build_cpu <target> <toolchain file> <gcc -mcpu value>
 build_cpu() {
   echo "building $1..."
