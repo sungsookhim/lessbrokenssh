@@ -5,15 +5,15 @@
 
 /* so many versions */
 /* lessbrokenssh has its own versions, starting over from ssheven 0.9.0 */
-#define SSHEVEN_VERSION             "0.1.0"
-#define SSHEVEN_LONG_VERSION        "0.1.0, based on ssheven 0.9.0 by cy384"
-#define SSHEVEN_DESCRIPTION         "lessbrokenssh 0.1.0, based on ssheven by cy384"
+#define SSHEVEN_VERSION             "0.1"
+#define SSHEVEN_LONG_VERSION        "0.1, based on ssheven 0.9.0 by cy384"
+#define SSHEVEN_DESCRIPTION         "lessbrokenssh 0.1, based on ssheven by cy384"
 #define SSHEVEN_VERSION_MAJOR       0x00
 #define SSHEVEN_VERSION_MINOR       0x10
-#define SSHEVEN_VERSION_PRERELEASE  0x01
+#define SSHEVEN_VERSION_PRERELEASE  0x00
 
 /* options: development, alpha, beta, release */
-#define SSHEVEN_RELEASE_TYPE        development
+#define SSHEVEN_RELEASE_TYPE        release
 #define SSHEVEN_RELEASE_REGION      verUS
 
 /* requested number of bytes for RAM, used in SIZE resource */

@@ -10,11 +10,15 @@ Machines I want it to run on:
 
 | Machine | CPU | Build |
 |---|---|---|
-| Macintosh LC II | 68030, no FPU | `68030` |
+| Macintosh LC II | 68030, no FPU | `68020` |
 | Macintosh LC 475 | 68LC040, no FPU | `68040` |
 | iMac G3 | PowerPC 750 (G3) | `g3` |
 
-I'm also checking whether builds tuned for one CPU are actually faster than the generic `68020` and `601` builds, or whether they make no real difference.
+The `68020` build covers the 68030 too: the compiler produces the same code for both. The `g3` build uses only instructions every PowerPC has, so it runs on any PowerPC Mac.
+
+### download
+
+Builds are on the [releases page](https://github.com/sungsookhim/lessbrokenssh/releases): a `.bin` (MacBinary) for each of `68020`, `68040` and `g3`, and one `.dsk` disk image with all three. Release notes are kept in [docs/releases/](docs/releases/).
 
 ### status
 
@@ -66,9 +70,9 @@ To do, or ideas to keep in mind:
 - **Scrollback length** as a preference instead of a constant.
 - **Faster drawing on 68k:** draw each row's glyphs with one copy instead of one per cell, which matters most for btop's Braille graphs.
 - **Mouse dragging** for programs that track it (only press and release are sent now).
-- **Measure the CPU-tuned builds** against the generic `68020` and `601` ones.
+- **Measure the CPU-tuned builds**: `68040` against `68020` on the LC 475, and `g3` against `601` on the G3. If tuning makes no real difference, ship one 68k build.
 - **Ed25519 keys**, which this libssh2 build has turned off (RSA and ECDSA keys work).
-- **Tag a release** with the `.bin` files. The two upstream bugs fixed here (the dropped port, `88a7ad8`, and `TERM` not being set, `8fe357b`) can go to cy384/ssheven if they're ever wanted.
+- **Upstream fixes:** the two upstream bugs fixed here (the dropped port, `88a7ad8`, and `TERM` not being set, `8fe357b`) can go to cy384/ssheven if they're ever wanted.
 
 The design and plan are in [docs/design/](docs/design/README.md). The glyph and emoji tools are described in [tools/glyphs/README.md](tools/glyphs/README.md). The app icon and About picture are PNGs in `docs/lessbrokenssh-icons/`, turned into `lessbrokenssh-icons.r` by `tools/icons/make_icons.py` on every build. Glyphs are plain text files in `glyphs/6x12/`, and emoji are PNGs in `glyphs/emoji/12x12/`, so both can be edited by hand.
 
@@ -77,8 +81,10 @@ The design and plan are in [docs/design/](docs/design/README.md). The glyph and 
 Needs podman (or docker, with `ENGINE=docker`). The first run builds a container with the [Retro68](https://github.com/autc04/Retro68/) toolchain and Apple's Universal Interfaces.
 
 ```
-./build.sh               # all targets: 68020 68030 68040 601 g3
-./build.sh 68030 g3      # just these
+./build.sh               # all release targets: 68020 68040 g3
+./build.sh 68040 g3      # just these
+./build.sh 601           # PowerPC tuned for the 601, for speed comparisons
+./build.sh release       # all, plus versioned .bin files and one .dsk in dist/release/
 ./build.sh shell         # shell inside the build container
 ./build.sh glyphs        # regenerate glyphs and previews after editing (see tools/glyphs/)
 ```

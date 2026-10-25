@@ -18,6 +18,11 @@ ELSE()
 ENDIF()
 add_application(lessbrokenssh CREATOR "LBSH" lessbrokenssh.c lessbrokenssh-console.c lessbrokenssh.r glyphs.r cjk.r lessbrokenssh-net.c lessbrokenssh-debug.c lessbrokenssh-glyph.c lessbrokenssh-cjk.c lessbrokenssh-scrollback.c)
 
+# Retro68's Rez rule only depends on the .r file itself; rebuild the resources
+# when the files it includes change too (version, icons)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/lessbrokenssh.r.rsrc.bin APPEND
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/lessbrokenssh-constants.r ${CMAKE_CURRENT_SOURCE_DIR}/lessbrokenssh-icons.r)
+
 # set up and build mbedtls
 set(ENABLE_PROGRAMS OFF CACHE BOOL "disable mbedtls programs" FORCE)
 set(UNSAFE_BUILD ON CACHE BOOL "ignore mac os jank for mbedtls" FORCE)

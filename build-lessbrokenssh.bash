@@ -4,9 +4,13 @@ set -e
 # usage: build-lessbrokenssh.bash [target...]
 #
 # targets:
-#   68020 68030 68040   68k builds tuned for that CPU (all soft-float)
-#   601 g3              PowerPC builds tuned for the 601 or the 750 (G3)
-#   all                 everything above (the default)
+#   68020 68040         68k builds tuned for that CPU (both soft-float); the
+#                       68020 one also covers the 68030, which compiles the same
+#   g3                  PowerPC build tuned for the 750 (G3); runs on any PowerPC
+#   601                 PowerPC build tuned for the 601, for comparing speed
+#   all                 68020 68040 g3 (the default)
+#   release             all, then the release files in dist/release/ (see
+#                       make_release below)
 #   glyphs              regenerate procedural glyphs (keeping hand-edited ones),
 #                       pack them, and render previews into build-glyphs/
 #
@@ -51,12 +55,40 @@ build_cpu() {
   cp build-$1/lessbrokenssh.bin dist/lessbrokenssh-$1.bin
 }
 
+# make_release: dist/release/lessbrokenssh-<version>-<cpu>.bin for each release
+# build, and one lessbrokenssh-<version>.dsk holding all three apps and a Read Me
+make_release() {
+  local version=$(sed -n 's/^#define SSHEVEN_VERSION *"\(.*\)"/\1/p' lessbrokenssh-constants.r)
+  local out=dist/release
+  local dsk=$out/lessbrokenssh-$version.dsk
+  rm -rf $out && mkdir -p $out
+  for cpu in 68020 68040 g3; do
+    cp dist/lessbrokenssh-$cpu.bin $out/lessbrokenssh-$version-$cpu.bin
+  done
+
+  # sized to fit: the apps plus 25% and 256 KB for HFS overhead
+  local kb=$(( $(cat $out/*.bin | wc -c) * 5 / 4 / 1024 + 256 ))
+  dd if=/dev/zero of=$dsk bs=1024 count=$kb status=none
+  hformat -l "lessbrokenssh $version" $dsk >/dev/null
+  hmount $dsk >/dev/null
+  hcopy -m $out/lessbrokenssh-$version-68020.bin ":lessbrokenssh 68020"
+  hcopy -m $out/lessbrokenssh-$version-68040.bin ":lessbrokenssh 68040"
+  hcopy -m $out/lessbrokenssh-$version-g3.bin ":lessbrokenssh PowerPC"
+  sed "s/@VERSION@/$version/g" docs/releases/readme.txt > $out/readme.tmp
+  hcopy -t $out/readme.tmp ":Read Me"
+  hattrib -t TEXT -c ttxt ":Read Me"
+  hls -l
+  humount >/dev/null
+  rm $out/readme.tmp
+  echo "release files in $out/"
+}
+
 TARGETS=("$@")
 [[ ${#TARGETS[@]} -eq 0 ]] && TARGETS=(all)
 
 for target in "${TARGETS[@]}"; do
   case $target in
-    68020|68030|68040) build_cpu $target $TOOLCHAIN_68K $target ;;
+    68020|68040)       build_cpu $target $TOOLCHAIN_68K $target ;;
     601)               build_cpu 601 $TOOLCHAIN_PPC 601 ;;
     g3)                build_cpu g3 $TOOLCHAIN_PPC 750 ;;
     glyphs)
@@ -65,12 +97,12 @@ for target in "${TARGETS[@]}"; do
       python3 tools/glyphs/pack.py
       python3 tools/glyphs/preview.py
       ;;
-    all)
-      for cpu in 68020 68030 68040; do build_cpu $cpu $TOOLCHAIN_68K $cpu; done
-      build_cpu 601 $TOOLCHAIN_PPC 601
+    all|release)
+      for cpu in 68020 68040; do build_cpu $cpu $TOOLCHAIN_68K $cpu; done
       build_cpu g3 $TOOLCHAIN_PPC 750
+      [[ $target == release ]] && make_release
       ;;
-    *) echo "unknown target: $target (try 68020 68030 68040 601 g3 all glyphs)"; exit 1 ;;
+    *) echo "unknown target: $target (try 68020 68040 g3 601 all release glyphs)"; exit 1 ;;
   esac
 done
 

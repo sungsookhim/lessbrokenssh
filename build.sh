@@ -3,8 +3,8 @@
 # Build lessbrokenssh for classic Mac OS inside the Retro68 container.
 #
 # usage:
-#   ./build.sh [target...]   build into dist/; targets are 68020 68030 68040
-#                            601 g3 all (default: all)
+#   ./build.sh [target...]   build into dist/; targets are 68020 68040 g3 601
+#                            all (68020 68040 g3, the default) and release
 #   ./build.sh glyphs        regenerate glyphs and previews (see tools/glyphs/)
 #   ./build.sh shell    open a shell in the build environment
 #   ./build.sh image    (re)build the container image only
