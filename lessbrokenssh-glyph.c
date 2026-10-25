@@ -101,13 +101,79 @@ int glyph_index(uint32_t codepoint)
 	return -1;
 }
 
-void glyph_draw(int index, const Rect* cell)
+// one row of cells, where a row's glyphs are put together so each run of them
+// takes one CopyBits instead of one per cell; most of a CopyBits to a deep
+// screen is fixed setup, so that's what made Braille graphs slow on 68k
+static BitMap row_bits;
+static Ptr row_buffer = NULL;
+static long row_buffer_size = 0;
+static short row_height = 0;
+
+void glyph_row_begin(int columns)
 {
+	if (glyph_count == 0) return;
+
+	short row_bytes = (short)(((columns * glyph_width + 15) / 16) * 2);
+	long size = (long)row_bytes * glyph_bits.bounds.bottom;
+
+	if (size > row_buffer_size)
+	{
+		if (row_buffer) DisposePtr(row_buffer);
+		row_buffer = NewPtr(size);
+		row_buffer_size = row_buffer ? size : 0;
+	}
+
+	if (row_buffer == NULL) return;
+
+	row_height = glyph_bits.bounds.bottom;
+	row_bits.baseAddr = row_buffer;
+	row_bits.rowBytes = row_bytes;
+	SetRect(&row_bits.bounds, 0, 0, (short)(columns * glyph_width), row_height);
+	memset(row_buffer, 0, (size_t)size);
+}
+
+void glyph_row_put(int index, int column)
+{
+	if (row_buffer == NULL) return;
+
+	const unsigned char* src_base = (const unsigned char*)glyph_bits.baseAddr;
+	unsigned char* dst_base = (unsigned char*)row_buffer;
+	long src_bit = (long)index * glyph_width;
+	long dst_bit = (long)column * glyph_width;
+	int src_shift = (int)(src_bit & 7);
+	int dst_shift = (int)(dst_bit & 7);
+	int src_bytes = (src_shift + glyph_width + 7) / 8; // at most 4, cells are under 25 px wide
+	int dst_bytes = (dst_shift + glyph_width + 7) / 8;
+
+	const unsigned char* src = src_base + (src_bit >> 3);
+	unsigned char* dst = dst_base + (dst_bit >> 3);
+
+	for (short y = 0; y < row_height; y++)
+	{
+		// the glyph's line, left-aligned in 32 bits
+		uint32_t bits = 0;
+		for (int b = 0; b < src_bytes; b++) bits |= (uint32_t)src[b] << (24 - 8 * b);
+		bits = (bits << src_shift) & ~(0xFFFFFFFFUL >> glyph_width);
+
+		// into the row, which starts out clear
+		bits >>= dst_shift;
+		for (int b = 0; b < dst_bytes; b++) dst[b] |= (unsigned char)(bits >> (24 - 8 * b));
+
+		src += glyph_bits.rowBytes;
+		dst += row_bits.rowBytes;
+	}
+}
+
+int glyph_row_draw(int start_column, int length, const Rect* cells)
+{
+	if (row_buffer == NULL) return 0;
+
 	Rect src;
-	SetRect(&src, (short)(index * glyph_width), 0, (short)((index + 1) * glyph_width), glyph_bits.bounds.bottom);
+	SetRect(&src, (short)(start_column * glyph_width), 0, (short)((start_column + length) * glyph_width), row_height);
 
 	// a 1-bit source gets colored with the port's foreground and background colors
-	CopyBits(&glyph_bits, &qd.thePort->portBits, &src, cell, srcCopy, NULL);
+	CopyBits(&row_bits, &qd.thePort->portBits, &src, cells, srcCopy, NULL);
+	return 1;
 }
 
 // layout of an 'EMOJ' resource, see tools/glyphs/pack.py

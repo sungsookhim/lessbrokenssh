@@ -19,8 +19,15 @@ int glyphs_count(void);
 // index of the glyph for a code point, or -1 if there isn't one
 int glyph_index(uint32_t codepoint);
 
-// draw a glyph into a cell of the current port, in its foreground and background colors
-void glyph_draw(int index, const Rect* cell);
+// glyphs are drawn a row at a time: glyph_row_begin() clears a row of the
+// given width, glyph_row_put() puts glyphs into its columns, and
+// glyph_row_draw() copies columns of it to the current port, in its
+// foreground and background colors (so columns without a glyph come out as
+// background). glyph_row_draw() returns 0 if it couldn't draw (no glyph set,
+// or no memory for the row), so the caller can erase instead.
+void glyph_row_begin(int columns);
+void glyph_row_put(int index, int column);
+int glyph_row_draw(int start_column, int length, const Rect* cells);
 
 // load the emoji set for this cell size (two cells per emoji), in color if the
 // screen depth allows; returns how many emoji it has (0 if none)

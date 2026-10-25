@@ -226,22 +226,52 @@ static inline int32_t cell_cjk(const VTermScreenCell* cell)
 	return cjk_lookup(compose_hangul(cell->chars));
 }
 
-// draw the atlas glyphs and CJK characters in one run of a row, in the current colors
-static void draw_run_glyphs(const int* row_glyph, const int32_t* row_cjk, int row, int start_col, int length)
+// note a cell's atlas glyph in the row being built, starting the row's glyph
+// bitmap at its first glyph; returns the glyph index again
+static inline int put_row_glyph(int glyph, int col, int* row_started)
+{
+	if (glyph < 0) return glyph;
+
+	if (!*row_started)
+	{
+		glyph_row_begin(con.size_x);
+		*row_started = 1;
+	}
+
+	glyph_row_put(glyph, col);
+	return glyph;
+}
+
+// the CJK characters in one run of a row, in the current colors
+static void draw_run_cjk(const int32_t* row_cjk, int row, int start_col, int length)
 {
 	for (int col = start_col; col < start_col + length; col++)
 	{
-		if (row_glyph[col] >= 0)
-		{
-			Rect r = cell_rect(col, row, con.win->portRect);
-			glyph_draw(row_glyph[col], &r);
-		}
-		else if (row_cjk[col] >= 0)
+		if (row_cjk[col] >= 0)
 		{
 			Rect r = cell_rect(col, row, con.win->portRect);
 			cjk_draw(row_cjk[col], r.left, (short)(r.top + con.cell_height - font_offset), con.cell_height);
 		}
 	}
+}
+
+// draw one run of a row in the current colors and face: its glyphs come from
+// the row's glyph bitmap in a single copy that also paints the background
+// (glyph cells are spaces in row_text), then the text over it
+static void draw_run(const char* row_text, const int* row_glyph, const int32_t* row_cjk,
+	int row, int start_col, int length, const Rect* run_rect, short baseline)
+{
+	int has_glyphs = 0;
+	for (int col = start_col; col < start_col + length && !has_glyphs; col++)
+	{
+		has_glyphs = row_glyph[col] >= 0;
+	}
+
+	if (!has_glyphs || !glyph_row_draw(start_col, length, run_rect)) EraseRect(run_rect);
+
+	MoveTo(run_rect->left, baseline);
+	DrawText(row_text, (short)start_col, (short)length);
+	draw_run_cjk(row_cjk, row, start_col, length);
 }
 
 void print_string(const char* c)
@@ -734,6 +764,7 @@ void draw_screen_color(Rect* r)
 
 	for (pos.row = first_row; pos.row < last_row; pos.row++)
 	{
+		int glyphs_started = 0;
 		pos.col = 0;
 		ok = view_cell(pos, &run_start);
 		run_length = 0;
@@ -755,7 +786,7 @@ void draw_screen_color(Rect* r)
 			ok = view_cell(pos, &vtsc);
 
 			row_emoji[pos.col] = cell_emoji(&vtsc);
-			row_glyph[pos.col] = (row_emoji[pos.col] >= 0) ? -1 : cell_glyph(&vtsc);
+			row_glyph[pos.col] = (row_emoji[pos.col] >= 0) ? -1 : put_row_glyph(cell_glyph(&vtsc), pos.col, &glyphs_started);
 			row_cjk[pos.col] = (row_emoji[pos.col] >= 0 || row_glyph[pos.col] >= 0) ? -1 : cell_cjk(&vtsc);
 			row_text[pos.col] = (row_emoji[pos.col] >= 0 || row_glyph[pos.col] >= 0 || row_cjk[pos.col] >= 0) ? ' ' : cell_text(&vtsc);
 			cell_colors(&vtsc, &next_fg, &next_bg);
@@ -772,11 +803,8 @@ void draw_screen_color(Rect* r)
 				if (run_inverted) set_cell_colors(run_bg, run_fg);
 				else set_cell_colors(run_fg, run_bg);
 
-				EraseRect(&run_rect);
-				MoveTo(run_rect.left, vertical_offset);
 				TextFace(run_face);
-				DrawText(row_text, run_start_col, run_length);
-				draw_run_glyphs(row_glyph, row_cjk, pos.row, run_start_col, run_length);
+				draw_run(row_text, row_glyph, row_cjk, pos.row, run_start_col, run_length, &run_rect, vertical_offset);
 
 				// then reset everything to start a new run
 				run_inverted = vtsc.attrs.reverse ^ (i < select_end && i >= select_start);
@@ -798,11 +826,8 @@ void draw_screen_color(Rect* r)
 				if (run_inverted) set_cell_colors(run_bg, run_fg);
 				else set_cell_colors(run_fg, run_bg);
 
-				EraseRect(&run_rect);
-				MoveTo(run_rect.left, vertical_offset);
 				TextFace(run_face);
-				DrawText(row_text, run_start_col, run_length);
-				draw_run_glyphs(row_glyph, row_cjk, pos.row, run_start_col, run_length);
+				draw_run(row_text, row_glyph, row_cjk, pos.row, run_start_col, run_length, &run_rect, vertical_offset);
 			}
 			else
 			{
@@ -903,6 +928,8 @@ void draw_screen_fast(Rect* r)
 
 	for (pos.row = first_row; pos.row < last_row; pos.row++)
 	{
+		int glyphs_started = 0;
+		int first_glyph = -1, last_glyph = -1;
 		erase_row(pos.row);
 
 		for (pos.col = 0; pos.col < con.size_x; pos.col++)
@@ -910,9 +937,15 @@ void draw_screen_fast(Rect* r)
 			int ret = view_cell(pos, &here);
 
 			row_emoji[pos.col] = cell_emoji(&here);
-			row_glyph[pos.col] = (row_emoji[pos.col] >= 0) ? -1 : cell_glyph(&here);
+			row_glyph[pos.col] = (row_emoji[pos.col] >= 0) ? -1 : put_row_glyph(cell_glyph(&here), pos.col, &glyphs_started);
 			row_cjk[pos.col] = (row_emoji[pos.col] >= 0 || row_glyph[pos.col] >= 0) ? -1 : cell_cjk(&here);
 			row_text[pos.col] = (row_emoji[pos.col] >= 0 || row_glyph[pos.col] >= 0 || row_cjk[pos.col] >= 0) ? ' ' : cell_text(&here);
+
+			if (row_glyph[pos.col] >= 0)
+			{
+				if (first_glyph < 0) first_glyph = pos.col;
+				last_glyph = pos.col;
+			}
 
 			bool invert = here.attrs.reverse ^ (i < select_end && i >= select_start);
 			row_invert[pos.col] = invert;
@@ -920,9 +953,17 @@ void draw_screen_fast(Rect* r)
 			i++;
 		}
 
+		// the row's glyphs in one copy, over the erased row; the text between them goes on top
+		if (first_glyph >= 0)
+		{
+			Rect span = cell_rect(first_glyph, pos.row, con.win->portRect);
+			span.right = cell_rect(last_glyph, pos.row, con.win->portRect).right;
+			glyph_row_draw(first_glyph, last_glyph - first_glyph + 1, &span);
+		}
+
 		MoveTo(r->left + 2, vertical_offset);
 		DrawText(row_text, 0, con.size_x);
-		draw_run_glyphs(row_glyph, row_cjk, pos.row, 0, con.size_x);
+		draw_run_cjk(row_cjk, pos.row, 0, con.size_x);
 		draw_row_emoji(row_emoji, pos.row);
 
 		for (int i = 0; i < con.size_x; i++)
